@@ -6,13 +6,13 @@ from ultralytics import YOLO
 from PIL import Image 
 
 # Load your YOLOv8 model
-model = YOLO('bestV2.pt')
+model = YOLO('weights/bestV2.pt')
 
 st.title("Chess Detection with Occupancy Grid")
 
 # Sidebar settings
 st.sidebar.title("Settings")
-conf_threshold = st.sidebar.slider("Confidence threshold", min_value=0.0, max_value=1.0, value=0.3, step=0.05)
+conf_threshold = st.sidebar.slider("Confidence threshold", min_value=0.0, max_value=1.0, value=0.05, step=0.05)
 grid_rows = 8
 grid_cols = 8
 
@@ -24,7 +24,7 @@ def create_grid(grid_rows, grid_cols):
             spaces.append(f"{chr(65 + i)}{j + 1}")
     return spaces
 
-# Function to get the minimum x-coordinate
+# Function to get the board coordinates
 def get_board_coordinates(xyxy):
     min_x = xyxy[:, 0].min().item()  # Use .min() to find the minimum and .item() to get scalar
     max_x = xyxy[:, 2].max().item()  # Use .max() for the maximum value
@@ -32,7 +32,7 @@ def get_board_coordinates(xyxy):
     max_y = xyxy[:, 3].max().item()
     return min_x - 5, min_y - 5, max_x + 5, max_y + 5
 
-# Map detections to parking spaces
+# Map detections to cells
 def map_detections_to_spaces(boxes, spaces, classes, frame_shape, grid_rows, grid_cols):
     # Initialize all spaces to "initial"
     occupancy = {space: "initial" for space in spaces}
@@ -62,7 +62,6 @@ def map_detections_to_spaces(boxes, spaces, classes, frame_shape, grid_rows, gri
 
 # Create the occupancy grid visualization
 def create_occupancy_map(occupancy, grid_rows, grid_cols, map_shape = (480, 640, 3)):
-    map_shape = (480, 640, 3)
     occ_map = np.full(map_shape, (25, 25, 75), dtype=np.uint8)
 
     for i, row in enumerate(range(65, 65 + grid_rows)):
@@ -87,9 +86,8 @@ def create_occupancy_map(occupancy, grid_rows, grid_cols, map_shape = (480, 640,
 
     return occ_map
 
-# Process the video frame by frame
-def process_image(imagePath):
-    spaces = create_grid(grid_rows, grid_cols)
+# Get the board
+def get_board(imagePath):
     image = cv2.imread(imagePath)
     if image is None:
         raise ValueError(f"Unable to load image from path: {imagePath}")
@@ -100,7 +98,12 @@ def process_image(imagePath):
     img = Image.open(imagePath)
 
     # Crop the image
-    cropped_img = img.crop((min_x, min_y, max_x, max_y))
+    return img.crop((min_x, min_y, max_x, max_y))
+
+# Process the image
+def process_image(imagePath):
+    spaces = create_grid(grid_rows, grid_cols)
+    board = get_board(imagePath)
 
     # Output placeholders
     det_out = st.empty()
@@ -108,20 +111,20 @@ def process_image(imagePath):
     summary_out = st.empty()
 
     # Perform YOLO prediction
-    results = model.predict(source=cropped_img, conf=conf_threshold)
+    results = model.predict(source=board, conf=conf_threshold)
     boxes = results[0].boxes.xyxy.cpu().numpy() if results else []
 
     predicted_classes = results[0].boxes.cls
     class_names = model.names
     predicted_class_names = [class_names[int(cls_idx)] for cls_idx in predicted_classes]    
 
-    occupancy = map_detections_to_spaces(boxes, spaces, predicted_class_names, cropped_img.size, grid_rows, grid_cols)
+    occupancy = map_detections_to_spaces(boxes, spaces, predicted_class_names, board.size, grid_rows, grid_cols)
 
     # Visualize detections
-    detection_vis = results[0].plot() if results else image
+    detection_vis = results[0].plot() if results else board
 
     # Create the occupancy map
-    occ_map = create_occupancy_map(occupancy, grid_rows, grid_cols, cropped_img.size)
+    occ_map = create_occupancy_map(occupancy, grid_rows, grid_cols)
 
     # Display the frames
     det_out.image(detection_vis, channels="BGR", use_container_width=True)
