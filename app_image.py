@@ -5,7 +5,7 @@ from ultralytics import YOLO
 from helpers import *
 
 # Load your YOLOv8 model
-model = YOLO('weights/bestV4.pt')
+model = YOLO('weights/bestV5.pt')
 
 st.title("Chess Detection with Occupancy Grid")
 
@@ -18,28 +18,31 @@ grid_rows = grid_cols = 8
 # Process the image
 def process_image(imagePath):
     spaces = create_grid(grid_rows, grid_cols)
-    board = get_board(imagePath, model, conf_threshold)
+    results = model.predict(source=imagePath, conf=conf_threshold)
+
+    img = Image.open(imagePath)
+    new_shape, lm, bm = get_new_shape(results[0].boxes.xyxy, img.size)
 
     det_out = st.empty()
     occ_out = st.empty()
+    det_boxes = st.empty()
     summary_out = st.empty()
     board_status = st.empty()
 
     # Perform YOLO prediction
-    results = model.predict(source=board, conf=conf_threshold)
     boxes = results[0].boxes.xyxy.cpu().numpy() if results else []
 
     predicted_classes = results[0].boxes.cls
     class_names = model.names
     predicted_class_names = [class_names[int(cls_idx)] for cls_idx in predicted_classes]    
 
-    occupancy = map_detections_to_spaces(boxes, spaces, predicted_class_names, board.size, grid_rows, grid_cols)
+    occupancy = map_detections_to_spaces(boxes, spaces, predicted_class_names, new_shape, grid_rows, grid_cols, lm, bm)
 
     new_board_status = map_occupancy_to_board_status(occupancy)
 
 
     # Visualize detections
-    detection_vis = results[0].plot() if results else board
+    detection_vis = results[0].plot() if results else img
 
     # Create the occupancy map
     occ_map = create_occupancy_map(occupancy, grid_rows, grid_cols)
@@ -48,6 +51,7 @@ def process_image(imagePath):
     det_out.image(detection_vis, channels="BGR", use_container_width=True)
     occ_out.image(occ_map, use_container_width=True)
 
+    det_boxes.write(f"Number of detected boxes = {len(results[0].boxes.cls)} Missing cells = {64 - len(results[0].boxes.cls)}")
     # Display summary
     summary = {
         "Total Spaces": len(spaces),

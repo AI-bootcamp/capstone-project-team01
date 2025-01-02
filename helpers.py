@@ -18,9 +18,21 @@ def get_board_coordinates(xyxy):
     min_y = xyxy[:, 1].min().item()
     max_y = xyxy[:, 3].max().item()
     return min_x - 5, min_y - 5, max_x + 5, max_y + 5
+def get_new_shape(xyxy, shape):
+    min_x = xyxy[:, 0].min().item()
+    max_x = xyxy[:, 2].max().item()
+    min_y = xyxy[:, 1].min().item()
+    max_y = xyxy[:, 3].max().item()
+    
+    width, height = shape
+    lm = min_x
+    rm = width - max_x
+    bm = min_y
+    tm = height - max_y
+    return ((width - (lm + rm)), (height - (tm + bm))), lm, bm
 
 # Map detections to cells (reversed grid)
-def map_detections_to_spaces(boxes, spaces, classes, frame_shape, grid_rows, grid_cols):
+def map_detections_to_spaces(boxes, spaces, classes, frame_shape, grid_rows, grid_cols, lm, bm):
     # Initialize all spaces to "initial"
     occupancy = {space: "initial" for space in spaces}
     index = 0
@@ -32,8 +44,8 @@ def map_detections_to_spaces(boxes, spaces, classes, frame_shape, grid_rows, gri
     for box in boxes:
         # Calculate the center of the box
         # x_center = (box[0] + box[2]) / 2
-        x_center = ((box[0] + box[2]) / 2) + ( 0.25 * row_size)
-        y_center = (box[1] + box[3]) / 2
+        x_center = ((box[0] + box[2]) / 2) + ( 0.25 * row_size) - lm
+        y_center = ((box[1] + box[3]) / 2) - bm
 
 
         # Calculate row and column indices
@@ -78,6 +90,7 @@ def create_occupancy_map(occupancy, grid_rows, grid_cols, map_shape=(480, 640, 3
             cv2.putText(occ_map, space, (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
     return occ_map
+
 
 # Get the board from the frame
 def get_board_from_frame(frame, results):
