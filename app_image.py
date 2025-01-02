@@ -6,7 +6,7 @@ from ultralytics import YOLO
 from PIL import Image 
 
 # Load your YOLOv8 model
-model = YOLO('weights/bestV2.pt')
+model = YOLO('weights/bestV4.pt')
 
 st.title("Chess Detection with Occupancy Grid")
 
@@ -21,13 +21,13 @@ def create_grid(grid_rows, grid_cols):
     spaces = []
     for i in range(grid_rows):
         for j in range(grid_cols):
-            spaces.append(f"{chr(65 + i)}{j + 1}")
+            spaces.append(f"{chr(72 - i)}{j + 1}")  # Start from 'H' (72 in ASCII)
     return spaces
 
 # Function to get the board coordinates
 def get_board_coordinates(xyxy):
-    min_x = xyxy[:, 0].min().item()  # Use .min() to find the minimum and .item() to get scalar
-    max_x = xyxy[:, 2].max().item()  # Use .max() for the maximum value
+    min_x = xyxy[:, 0].min().item()
+    max_x = xyxy[:, 2].max().item()
     min_y = xyxy[:, 1].min().item()
     max_y = xyxy[:, 3].max().item()
     return min_x - 5, min_y - 5, max_x + 5, max_y + 5
@@ -51,14 +51,12 @@ def map_detections_to_spaces(boxes, spaces, classes, frame_shape, grid_rows, gri
         row = max(0, min(row, grid_rows - 1))  # Ensure 0 <= row < grid_rows
         col = max(0, min(col, grid_cols - 1))  # Ensure 0 <= col < grid_cols
         
-        # Map to a space identifier if within bounds
-        space = f"{chr(65 + row)}{col + 1}"  # Convert row index to letter and col index to number
+        # Map to a space identifier, reversed for rows
+        space = f"{chr(72 - row)}{col + 1}"  # Reverse row index to start from 'H' (72)
         occupancy[space] = classes[index]
         
         index += 1
-    
     return occupancy
-
 
 # Create the occupancy grid visualization
 def create_occupancy_map(occupancy, grid_rows, grid_cols, map_shape = (480, 640, 3)):
@@ -99,6 +97,23 @@ def get_board(imagePath):
 
     # Crop the image
     return img.crop((min_x, min_y, max_x, max_y))
+
+def map_occupancy_to_board_status(occupancy):
+    # Mapping rows and columns to a 2D array
+    rows = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A']
+    columns = ['1', '2', '3', '4', '5', '6', '7', '8']
+
+    new_board_status = []
+
+    for row in rows:
+        row_data = []
+        for col in columns:
+            key = f"{row}{col}"
+            cell_value = occupancy[key]
+            row_data.append(cell_value)
+        new_board_status.append(row_data)
+    
+    return new_board_status
 
 # Process the image
 def process_image(imagePath):
