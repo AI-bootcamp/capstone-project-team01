@@ -1,5 +1,7 @@
 import numpy as np
 import cv2
+from ultralytics import YOLO
+from PIL import Image 
 
 # Create a grid for spaces (reversed order)
 def create_grid(grid_rows, grid_cols):
@@ -42,6 +44,7 @@ def map_detections_to_spaces(boxes, spaces, classes, frame_shape, grid_rows, gri
         
         index += 1
     return occupancy
+    
 
 # Create the occupancy grid visualization
 def create_occupancy_map(occupancy, grid_rows, grid_cols, map_shape=(480, 640, 3)):
@@ -81,3 +84,34 @@ def get_board_from_frame(frame, results):
         return cropped_frame, detection_original
     else:
         return None
+    
+# Get the board From image
+def get_board(imagePath, model, conf_threshold):
+    image = cv2.imread(imagePath)
+    if image is None:
+        raise ValueError(f"Unable to load image from path: {imagePath}")
+
+    results = model.predict(source=image, conf=conf_threshold)
+
+    min_x, min_y, max_x, max_y = get_board_coordinates(results[0].boxes.xyxy)
+    img = Image.open(imagePath)
+
+    # Crop the image
+    return img.crop((min_x, min_y, max_x, max_y))
+
+def map_occupancy_to_board_status(occupancy):
+    # Mapping rows and columns to a 2D array
+    rows = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A']
+    columns = ['1', '2', '3', '4', '5', '6', '7', '8']
+
+    new_board_status = []
+
+    for row in rows:
+        row_data = []
+        for col in columns:
+            key = f"{row}{col}"
+            cell_value = occupancy[key]
+            row_data.append(cell_value)
+        new_board_status.append(row_data)
+    
+    return new_board_status
