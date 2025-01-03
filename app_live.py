@@ -66,14 +66,16 @@ def process_frame(frame):
     summary_out.write(summary)
     board_status.text("\n".join(str(row) for row in new_board_status))
 
+    return occ_map
 # Live webcam feed
 def live_camera_feed():
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     if not cap.isOpened():
         st.error("Unable to access the camera.")
         return
 
     stop_button = st.button("Stop Camera Feed")  
+    capture_button = st.button("Capture Frame")  # Button to manually capture a frame
 
     frame_counter = 0  
 
@@ -87,11 +89,19 @@ def live_camera_feed():
         # Display the live video frame (to be deleted)
         stframe.image(frame, channels="BGR", use_container_width=True)
 
-        frame_counter += 1
+        # # plan A : derease frame rate to 15 fps to to avoid noise in the detections, but it will increase processing time overhead
+        # frame_counter += 1
+        # if frame_counter % 15 == 0:
+        #         occ_map = process_frame(frame)
+                
+        #         # plan C : procces frame after evere 15 fbs  and check if procces frame returns 'initial' status if so, increse the frame counter by 5 and start the process_frame again
+        #         if any(s == 'initial' for s in occ_map.values()):
+        #             frame_counter += 4
 
-        # Get the chessboard from the frame and process it every 60th frame
-        if frame_counter % 60 == 0:
-                process_frame(frame)
+        # plan  B : add button to captuer frame and pass it to process_frame (timer function in real match)
+        if capture_button:
+           process_frame(frame)
+
 
         if stop_button:
             cap.release()
