@@ -18,6 +18,7 @@ def get_board_coordinates(xyxy):
     min_y = xyxy[:, 1].min().item()
     max_y = xyxy[:, 3].max().item()
     return min_x - 5, min_y - 5, max_x + 5, max_y + 5
+
 def get_new_shape(xyxy, shape):
     min_x = xyxy[:, 0].min().item()
     max_x = xyxy[:, 2].max().item()
@@ -77,7 +78,7 @@ def map_detections_to_spaces(boxes, spaces, classes, frame_shape, grid_rows, gri
 
         index += 1
         
-    return occupancy, grids
+    return occupancy
     
 
 # Create the occupancy grid visualization
