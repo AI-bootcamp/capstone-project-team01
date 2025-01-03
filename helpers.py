@@ -31,6 +31,19 @@ def get_new_shape(xyxy, shape):
     tm = height - max_y
     return ((width - (lm + rm)), (height - (tm + bm))), lm, bm
 
+def get_frame_new_shape(xyxy, shape):
+    min_x = xyxy[:, 0].min().item()
+    max_x = xyxy[:, 2].max().item()
+    min_y = xyxy[:, 1].min().item()
+    max_y = xyxy[:, 3].max().item()
+    
+    width, height = shape[0], shape[1]
+    lm = min_x
+    rm = width - max_x
+    bm = min_y
+    tm = height - max_y
+    return ((width - (lm + rm)), (height - (tm + bm))), lm, bm
+
 # Map detections to cells (reversed grid)
 def map_detections_to_spaces(boxes, spaces, classes, frame_shape, grid_rows, grid_cols, lm, bm):
     # Initialize all spaces to "initial"
