@@ -5,7 +5,8 @@ from ultralytics import YOLO
 from helpers import *
 
 # Load your YOLOv8 model
-model = YOLO('weights/bestV7.pt')
+model = YOLO('weights/bestV8.pt')
+board_model = YOLO('weights/best_board.pt')
 
 st.title("Chess Detection with Occupancy Grid")
 
@@ -14,14 +15,46 @@ st.sidebar.title("Settings")
 conf_threshold = st.sidebar.slider("Confidence threshold", min_value=0.0, max_value=1.0, value=0.05, step=0.05)
 grid_rows = grid_cols = 8
 
+from PIL import Image
+
+def crop_image(image, xyxy):
+    """
+    Crops the input image based on the bounding box of the detected object.
+
+    Parameters:
+        image (PIL.Image.Image): The input image.
+        results (object): The detection results containing bounding box coordinates.
+
+    Returns:
+        PIL.Image.Image: The cropped image.
+    """
+    # Assuming `results` contains bounding box coordinates in the form:
+    # [xmin, ymin, xmax, ymax]
+    min_x = xyxy[:, 0].min().item() - 10
+    max_x = xyxy[:, 2].max().item() + 10
+    min_y = xyxy[:, 1].min().item() - 10
+    max_y = xyxy[:, 3].max().item() + 10
+
+    # Crop the image using the bounding box
+    cropped_image = image.crop((min_x, min_y, max_x, max_y))
+
+    return cropped_image
+
 
 # Process the image
 def process_image(imagePath):
     spaces = create_grid(grid_rows, grid_cols)
-    results = model.predict(source=imagePath, conf=conf_threshold)
+    results = board_model.predict(source=imagePath, conf=conf_threshold)
+    cropping = st.empty()
+    detection_vis = results[0].plot()
+    cropping.image(detection_vis, channels="BGR", use_container_width=True)
 
     img = Image.open(imagePath)
-    new_shape, lm, bm = get_new_shape(results[0].boxes.xyxy, img.size)
+    croppedImage = crop_image(img, results[0].boxes.xyxy)
+
+    results = model.predict(source=croppedImage, conf=conf_threshold)
+
+    new_shape, lm, bm = get_new_shape(results[0].boxes.xyxy, croppedImage.size)
 
     det_out = st.empty()
     occ_out = st.empty()
