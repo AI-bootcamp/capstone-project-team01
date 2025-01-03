@@ -5,7 +5,7 @@ from ultralytics import YOLO
 from helpers import *
 
 # Load your YOLOv8 model
-model = YOLO('weights/bestV5.pt')
+model = YOLO('weights/bestV7.pt')
 
 st.title("Chess Detection with Occupancy Grid")
 

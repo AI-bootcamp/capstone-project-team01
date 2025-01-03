@@ -48,6 +48,7 @@ def get_frame_new_shape(xyxy, shape):
 def map_detections_to_spaces(boxes, spaces, classes, frame_shape, grid_rows, grid_cols, lm, bm):
     # Initialize all spaces to "initial"
     occupancy = {space: "initial" for space in spaces}
+    grids = {space: "" for space in spaces}
     index = 0
     row_ratio = grid_rows / frame_shape[0]
     col_ratio = grid_cols / frame_shape[1]
@@ -57,9 +58,8 @@ def map_detections_to_spaces(boxes, spaces, classes, frame_shape, grid_rows, gri
     for box in boxes:
         # Calculate the center of the box
         # x_center = (box[0] + box[2]) / 2
-        x_center = ((box[0] + box[2]) / 2) + ( 0.25 * row_size) - lm
+        x_center = ((box[0] + box[2]) / 2) + ( 0.2 * row_size) - lm
         y_center = ((box[1] + box[3]) / 2) - bm
-
 
         # Calculate row and column indices
         row = int(y_center * row_ratio)
@@ -72,10 +72,12 @@ def map_detections_to_spaces(boxes, spaces, classes, frame_shape, grid_rows, gri
         # Map to a space identifier, reversed for rows
         space = f"{chr(72 - row)}{col + 1}"  # Reverse row index to start from 'H' (72)
         occupancy[space] = classes[index]
+        grids[space] += f' box{index}: {classes[index]}'
+
 
         index += 1
         
-    return occupancy
+    return occupancy, grids
     
 
 # Create the occupancy grid visualization

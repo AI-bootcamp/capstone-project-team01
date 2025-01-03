@@ -58,7 +58,7 @@ def process_image(imagePath):
         new_board_status = map_occupancy_to_board_status(occupancy)
 
         # Debug: Print board status to identify issues
-        st.write(new_board_status)
+        # st.write(new_board_status)
 
         # Update board based on detection
         square_index = 0
@@ -142,3 +142,4 @@ if st.button("Export Move History to PDF"):
         file_name="chess_move_history.pdf",
         mime="application/pdf"
     )
+ 
