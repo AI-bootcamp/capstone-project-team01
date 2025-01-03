@@ -3,6 +3,8 @@ import chess
 import chess.svg
 from io import BytesIO
 import base64
+from reportlab.pdfgen import canvas
+
 
 # Initialize board and move history
 if 'board' not in st.session_state:
@@ -72,14 +74,28 @@ if board.is_game_over():
     else:
         st.info("It's a draw!")
 
-# Export to PDF
-if st.button("Export Board to PDF"):
+
+# Export move history to PDF
+if st.button("Export Move History to PDF"):
     pdf = BytesIO()
-    pdf.write(render_board(board).encode('utf-8'))
+    c = canvas.Canvas(pdf)
+    
+    c.setFont("Helvetica", 14)
+    c.drawString(100, 800, "Chess Game - Move History")
+    
+    y = 780
+    c.setFont("Helvetica", 12)
+    for i, move in enumerate(move_history, start=1):
+        y -= 20
+        c.drawString(100, y, f"{i}. {move}")
+        
+    c.save()
     pdf.seek(0)
+
     st.download_button(
-        label="Download Board as PDF",
+        label="Download Move History as PDF",
         data=pdf,
-        file_name="chess_game.pdf",
+        file_name="chess_move_history.pdf",
         mime="application/pdf"
     )
+
