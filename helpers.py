@@ -151,3 +151,30 @@ def map_occupancy_to_board_status(occupancy):
         new_board_status.append(row_data)
     
     return new_board_status
+
+def order_detections(boxes, classes):
+    board_status = [] # Will be 2-d array that contains the classes
+    detections = []
+
+    # assuming the number of boxes is always 64
+    index = 0
+    for box in boxes:
+
+        x_center = ((box[0] + box[2]) / 2)
+        y_center = ((box[1] + box[3]) / 2)
+        detections.append({'box': index, 'x_center': x_center, 'y_center': y_center, 'class': classes[index]})
+
+        index += 1
+        
+    # Step 1: Sort detections by y_center to determine rows
+    detections = sorted(detections, key=lambda d: d['y_center'])
+
+    # Step 2: Divide detections into 8 rows
+    rows = [detections[i * 8:(i + 1) * 8] for i in range(8)]
+
+    # Step 3: Sort each row by x_center to determine columns
+    for row in rows:
+        sorted_row = sorted(row, key=lambda d: d['x_center'])
+        board_status.append([cell['class'] for cell in sorted_row])
+
+    return board_status
