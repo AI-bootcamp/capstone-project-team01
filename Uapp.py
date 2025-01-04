@@ -11,7 +11,7 @@ from reportlab.pdfgen import canvas
 import pandas as pd
 
 # Load YOLO model
-model = YOLO('weights/bestV5.pt')
+model = YOLO('weights/bestV8.pt')
 
 # Initialize board and move history
 if 'board' not in st.session_state:
@@ -54,8 +54,16 @@ st.title("Chess Game with Detection")
 
 # Sidebar settings
 st.sidebar.title("Settings")
-conf_threshold = st.sidebar.slider("Confidence threshold", 0.0, 1.0, 0.05, 0.05)
+conf_threshold = st.sidebar.slider("Confidence threshold", 0.0, 1.0, 0.6, 0.05)
 grid_rows = grid_cols = 8
+
+col1, col2 = st.columns(2)
+with col1:
+    det_out = st.empty()
+with col2:
+    image_out = st.empty()
+    
+
 
 # Function to render chessboard as SVG
 def render_board(board):
@@ -97,9 +105,9 @@ def update_chessboard(move, chessboard):
 
 # Process the image to detect chess pieces
 def process_image(imagePath):
-    spaces = create_grid(grid_rows, grid_cols)
+    # spaces = create_grid(grid_rows, grid_cols)
     results = model.predict(source=imagePath, conf=conf_threshold)
-    img = cv2.imread(imagePath)
+    # img = cv2.imread(imagePath)
 
     if results:
         boxes = results[0].boxes.xyxy.cpu().numpy()
@@ -107,9 +115,14 @@ def process_image(imagePath):
         class_names = model.names
         predicted_class_names = [class_names[int(cls)] for cls in predicted_classes]
 
-        new_shape, lm, bm = get_new_shape(boxes, img.shape[:2])
-        occupancy = map_detections_to_spaces(boxes, spaces, predicted_class_names, new_shape, grid_rows, grid_cols, lm, bm)
-        new_board_status = map_occupancy_to_board_status(occupancy)
+        # new_shape, lm, bm = get_new_shape(boxes, img.shape[:2])
+        # occupancy = map_detections_to_spaces(boxes, spaces, predicted_class_names, new_shape, grid_rows, grid_cols, lm, bm)
+        # new_board_status = map_occupancy_to_board_status(occupancy)
+        
+        detection_vis = results[0].plot()
+        det_out.image(detection_vis, channels="BGR", use_container_width=True)
+        
+        new_board_status = order_detections(boxes, predicted_class_names)
 
         move = detect_move(st.session_state.previous_board_status, new_board_status, st.session_state.chessboard)
         st.session_state.previous_board_status = new_board_status
@@ -128,10 +141,11 @@ def process_image(imagePath):
                 black_moves.loc[len(black_moves)] = move_data
 
             st.session_state.chessboard = update_chessboard(move, st.session_state.chessboard)
-            update_board_display()
 
             if chess_move in board.legal_moves:
                 board.push(chess_move)
+                update_board_display()
+
 
 # Export move tables to PDF
 def export_to_pdf():
@@ -171,7 +185,7 @@ if uploaded_file:
         temp_image.write(uploaded_file.read())
         temp_image_path = temp_image.name
 
-        st.image(temp_image_path, caption="Uploaded Image", width=700)
+        image_out.image(temp_image_path, caption="Uploaded Image", width=700)
 
         if st.button("Process Image"):
             process_image(temp_image_path)
