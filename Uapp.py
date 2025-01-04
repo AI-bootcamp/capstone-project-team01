@@ -37,11 +37,18 @@ if 'board' not in st.session_state:
         ['white', 'white', 'white', 'white', 'white', 'white', 'white', 'white'],
         ['white', 'white', 'white', 'white', 'white', 'white', 'white', 'white']
     ]
-    st.session_state.move_table = pd.DataFrame(columns=["Piece", "From", "To"])
+    st.session_state.white_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated"])
+    st.session_state.black_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated"])
+
+piece_names = {
+    'wr': 'Rook', 'wn': 'Knight', 'wb': 'Bishop', 'wq': 'Queen', 'wk': 'King', 'wp': 'Pawn',
+    'br': 'Rook', 'bn': 'Knight', 'bb': 'Bishop', 'bq': 'Queen', 'bk': 'King', 'bp': 'Pawn'
+}
 
 board = st.session_state.board
 move_history = st.session_state.move_history
-move_table = st.session_state.move_table
+white_moves = st.session_state.white_moves
+black_moves = st.session_state.black_moves
 
 st.title("Chess Game with Detection")
 
@@ -74,10 +81,7 @@ def detect_move(previous_board_status, new_board_status, chessboard):
                     move['piece'] = chessboard[row][col]
                 elif previous_board_status[row][col] == 'empty' and new_board_status[row][col] != 'empty':
                     move['end'] = (row, col)
-                elif previous_board_status[row][col] == 'black' and new_board_status[row][col] == 'white':
-                    move['end'] = (row, col)
-                    move['eliminated'] = chessboard[row][col]
-                elif previous_board_status[row][col] == 'white' and new_board_status[row][col] == 'black':
+                elif previous_board_status[row][col] != new_board_status[row][col]:
                     move['end'] = (row, col)
                     move['eliminated'] = chessboard[row][col]
     return move
@@ -103,15 +107,9 @@ def process_image(imagePath):
         class_names = model.names
         predicted_class_names = [class_names[int(cls)] for cls in predicted_classes]
 
-        new_shape, lm, bm = get_new_shape(boxes, img.shape[:2])  # Ensure lm and bm are calculated properly
-
-        # Debugging to ensure lm and bm are calculated
-        st.write(f"lm: {lm}, bm: {bm}")
-
+        new_shape, lm, bm = get_new_shape(boxes, img.shape[:2])
         occupancy = map_detections_to_spaces(boxes, spaces, predicted_class_names, new_shape, grid_rows, grid_cols, lm, bm)
-        st.write("Occupancy data:", occupancy)
         new_board_status = map_occupancy_to_board_status(occupancy)
-        st.write("New board status:", new_board_status)
 
         move = detect_move(st.session_state.previous_board_status, new_board_status, st.session_state.chessboard)
         st.session_state.previous_board_status = new_board_status
@@ -119,14 +117,21 @@ def process_image(imagePath):
         if 'start' in move and 'end' in move:
             start_square = f"{chr(97 + move['start'][1])}{8 - move['start'][0]}"
             end_square = f"{chr(97 + move['end'][1])}{8 - move['end'][0]}"
+            piece_name = piece_names.get(move['piece'], 'Unknown')
+            eliminated_piece = piece_names.get(move.get('eliminated', ''), '')
+
             chess_move = chess.Move.from_uci(f"{start_square}{end_square}")
+            move_data = [piece_name, start_square, end_square, eliminated_piece]
+            if move['piece'].startswith('w'):
+                white_moves.loc[len(white_moves)] = move_data
+            else:
+                black_moves.loc[len(black_moves)] = move_data
+
+            st.session_state.chessboard = update_chessboard(move, st.session_state.chessboard)
+            update_board_display()
 
             if chess_move in board.legal_moves:
                 board.push(chess_move)
-                move_history.append(f"{move['piece']} from {start_square} to {end_square}")
-                move_table.loc[len(move_table)] = [move['piece'], start_square, end_square]
-                st.session_state.chessboard = update_chessboard(move, st.session_state.chessboard)
-                update_board_display()
 
 # Upload and process image
 uploaded_file = st.file_uploader("Upload a chess image", type=["jpg", "jpeg", "png", "bmp"])
@@ -140,6 +145,8 @@ if uploaded_file:
         if st.button("Process Image"):
             process_image(temp_image_path)
 
-# Display move table
-st.write("### Move History Table")
-st.dataframe(move_table)
+# Display move tables
+st.write("### White Player Moves")
+st.dataframe(white_moves)
+st.write("### Black Player Moves")
+st.dataframe(black_moves)
