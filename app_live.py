@@ -16,7 +16,7 @@ st.title("Chess Detection with Occupancy Grid")
 
 # Sidebar settings
 st.sidebar.title("Settings")
-conf_threshold = st.sidebar.slider("Confidence threshold", min_value=0.0, max_value=1.0, value=0.50, step=0.05)
+conf_threshold = st.sidebar.slider("Confidence threshold", min_value=0.0, max_value=1.0, value=0.7, step=0.05)
 grid_rows = grid_cols = 8
 
 # Initialize board and move history
@@ -97,7 +97,6 @@ def update_chessboard(move, chessboard):
 
 
 stframe = st.empty() 
-
 capture = st.empty()
 
 col1, col2 = st.columns(2)
@@ -108,6 +107,7 @@ with col2:
 
 det_boxes = st.empty()
 summary_out = st.empty()
+move_history_placeholder = st.empty()
 board_status = st.empty()
 initial_status = st.empty()
 
@@ -119,6 +119,7 @@ def process_frame(frame):
     xyxy = results[0].boxes.xyxy
     if len(xyxy) == 0:
         return None
+
     new_shape, lm, bm = get_frame_new_shape(xyxy, frame.shape)
 
     # Perform YOLO prediction
@@ -127,8 +128,17 @@ def process_frame(frame):
     class_names = model.names
     predicted_class_names = [class_names[int(cls_idx)] for cls_idx in predicted_classes]    
 
-    occupancy = map_detections_to_spaces(boxes, spaces, predicted_class_names, new_shape, grid_rows, grid_cols, lm, bm)
-    new_board_status = map_occupancy_to_board_status(occupancy)
+    if len(xyxy) > 64:
+        summary_out.write(len(xyxy))
+        return
+    elif len(xyxy) < 64:
+        summary_out.write(len(xyxy))
+        return 
+    
+    # occupancy = map_detections_to_spaces(boxes, spaces, predicted_class_names, new_shape, grid_rows, grid_cols, lm, bm)
+    # new_board_status = map_occupancy_to_board_status(occupancy)
+
+    new_board_status = order_detections(boxes, predicted_class_names)
 
     move = detect_move(st.session_state.previous_board_status, new_board_status, st.session_state.chessboard)
     st.session_state.previous_board_status = new_board_status
@@ -147,24 +157,24 @@ def process_frame(frame):
 
     # Visualize detections
     detection_vis = results[0].plot() if results else frame
-    occ_map = create_occupancy_map(occupancy, grid_rows, grid_cols)
+    # occ_map = create_occupancy_map(occupancy, grid_rows, grid_cols)
 
     # Display frames and results
     det_out.image(detection_vis, channels="BGR", use_container_width=True)
-    occ_out.image(occ_map, use_container_width=True)
+    # occ_out.image(occ_map, use_container_width=True)
     det_boxes.write(f"Detected boxes: {len(results[0].boxes.cls)} | Missing cells: {64 - len(results[0].boxes.cls)}")
 
-    summary = {
-        "Total Spaces": len(spaces),
-        "Initial": sum(1 for s in occupancy.values() if s == "initial"),
-        "Empty": sum(1 for s in occupancy.values() if s == "empty"),
-        "Black": sum(1 for s in occupancy.values() if s == "black"),
-        "White": sum(1 for s in occupancy.values() if s == "white"),
-    }
-    summary_out.write(summary)
+    # summary = {
+    #     "Total Spaces": len(spaces),
+    #     "Initial": sum(1 for s in occupancy.values() if s == "initial"),
+    #     "Empty": sum(1 for s in occupancy.values() if s == "empty"),
+    #     "Black": sum(1 for s in occupancy.values() if s == "black"),
+    #     "White": sum(1 for s in occupancy.values() if s == "white"),
+    # }
+    # summary_out.write(summary)
     # Display move table
-    st.write("### Move History Table")
-    st.dataframe(move_table)
+    # st.write("### Move History Table")
+    move_history_placeholder.dataframe(move_table)
     board_status.text("\n".join(str(row) for row in new_board_status))
 
 # Live webcam feed
@@ -173,29 +183,28 @@ def live_camera_feed():
     if not cap.isOpened():
         st.error("Unable to access the camera.")
         return
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            st.error("Failed to capture frame.")
-        # Display the live video frame
-        stframe.image(frame, channels="BGR", use_container_width=True)
 
+    skip_frame = 0
+    stframe = st.empty()  # Use a Streamlit container for the video feed
 
-def fr_capture():
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        st.error("Unable to access the camera.")
-        return
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                st.warning("Failed to capture frame. Retrying...")
+                continue
 
-    ret, frame = cap.read()
-    if not ret:
-        st.error("Failed to capture frame.")
-    else:
-        # Display the live video frame
-        process_frame(frame)
+            # Display the live video frame
+            stframe.image(frame, channels="BGR", use_container_width=True)
 
+            # Process every 10th frame
+            if skip_frame % 10 == 0:
+                process_frame(frame)
 
-if capture.button("Capture"):
-    fr_capture()
+            skip_frame += 1
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+    finally:
+        cap.release()  # Ensure the camera is released when done
 
 live_camera_feed()
