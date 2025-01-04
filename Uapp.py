@@ -133,6 +133,37 @@ def process_image(imagePath):
             if chess_move in board.legal_moves:
                 board.push(chess_move)
 
+# Export move tables to PDF
+def export_to_pdf():
+    pdf = BytesIO()
+    c = canvas.Canvas(pdf)
+    c.setFont("Helvetica", 16)
+    c.drawString(200, 800, "Chess Game Move History")
+    c.setFont("Helvetica", 14)
+
+    y = 760
+    c.drawString(100, y, "White Player Moves:")
+    y -= 20
+    for index, row in white_moves.iterrows():
+        c.drawString(100, y, f"{row['Piece']} from {row['From']} to {row['To']} (Eliminated: {row['Eliminated']})")
+        y -= 20
+
+    y -= 40
+    c.drawString(100, y, "Black Player Moves:")
+    y -= 20
+    for index, row in black_moves.iterrows():
+        c.drawString(100, y, f"{row['Piece']} from {row['From']} to {row['To']} (Eliminated: {row['Eliminated']})")
+        y -= 20
+
+    c.save()
+    pdf.seek(0)
+    st.download_button(
+        label="Download Move History as PDF",
+        data=pdf,
+        file_name="chess_move_history.pdf",
+        mime="application/pdf"
+    )
+
 # Upload and process image
 uploaded_file = st.file_uploader("Upload a chess image", type=["jpg", "jpeg", "png", "bmp"])
 if uploaded_file:
@@ -150,3 +181,7 @@ st.write("### White Player Moves")
 st.dataframe(white_moves)
 st.write("### Black Player Moves")
 st.dataframe(black_moves)
+
+# Button to export to PDF
+if st.button("Export Move Tables to PDF"):
+    export_to_pdf()
