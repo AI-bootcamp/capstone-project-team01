@@ -75,12 +75,12 @@ with black_sec:
 with board_sec:
     board_svg_placeholder = st.empty()
  
-col21, col22 = st.columns(2)
-with col1:
-    prev_status_placeholder = st.empty() 
-with col2:
-    new_status_placeholder = st.empty()
-    
+# col21, col22 = st.columns(2)
+# with col1:
+#     prev_status_placeholder = st.empty() 
+# with col2:
+#     new_status_placeholder = st.empty()
+
 # Function to render chessboard as SVG
 def render_board(board):
     return chess.svg.board(board=board)
@@ -177,7 +177,7 @@ def process_frame(frame):
     det_out.image(detection_vis, channels="BGR", use_container_width=True)
 
     new_board_status = order_detections(boxes, predicted_class_names)
-    new_status_placeholder.text("\n".join(str(row) for row in new_board_status))
+    # new_status_placeholder.text("\n".join(str(row) for row in new_board_status))
 
     move = detect_move(st.session_state.previous_board_status, new_board_status, st.session_state.chessboard)
 
@@ -199,7 +199,7 @@ def process_frame(frame):
                 black_moves.loc[len(black_moves)] = move_data
 
             st.session_state.chessboard = update_chessboard(move, st.session_state.chessboard)
-            prev_status_placeholder.text("\n".join(str(row) for row in st.session_state.previous_board_status))
+            # prev_status_placeholder.text("\n".join(str(row) for row in st.session_state.previous_board_status))
             st.session_state.previous_board_status = new_board_status
 
             white_moves_placeholder.dataframe(white_moves)
