@@ -62,16 +62,8 @@ with col2:
     det_out = st.empty()
 det_boxes = st.empty()
 
-col21, col22 = st.columns(2)
-with col1:
-    prev_status_placeholder = st.empty() 
-with col2:
-    new_status_placeholder = st.empty()
-# Function to render chessboard as SVG
-def render_board(board):
-    return chess.svg.board(board=board)
+board_svg_placeholder = st.empty()
 
-# Display board
 # Display move tables
 white_sec, black_sec, board_sec = st.columns(3)
 with white_sec:
@@ -82,6 +74,17 @@ with black_sec:
     black_moves_placeholder = st.dataframe(black_moves)
 with board_sec:
     board_svg_placeholder = st.empty()
+ 
+col21, col22 = st.columns(2)
+with col1:
+    prev_status_placeholder = st.empty() 
+with col2:
+    new_status_placeholder = st.empty()
+    
+# Function to render chessboard as SVG
+def render_board(board):
+    return chess.svg.board(board=board)
+   
 def update_board_display():
     board_svg = render_board(board)
     encoded_svg = base64.b64encode(board_svg.encode('utf-8')).decode('utf-8')
