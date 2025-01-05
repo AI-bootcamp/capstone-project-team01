@@ -1,14 +1,49 @@
+import streamlit as st
+import chess
+import chess.svg
+import pandas as pd
+import base64
+from reportlab.pdfgen import canvas
+
+# Variables
+piece_names = {
+    'wr': 'Rook', 'wn': 'Knight', 'wb': 'Bishop', 'wq': 'Queen', 'wk': 'King', 'wp': 'Pawn',
+    'br': 'Rook', 'bn': 'Knight', 'bb': 'Bishop', 'bq': 'Queen', 'bk': 'King', 'bp': 'Pawn'
+}
+
+def start_game(chessboard = None):
+    st.session_state.board = chess.Board()
+    st.session_state.move_history = []
+    st.session_state.chessboard = [
+        ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
+        ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
+        ['.', '.', '.', '.', '.', '.', '.', '.'],
+        ['.', '.', '.', '.', '.', '.', '.', '.'],
+        ['.', '.', '.', '.', '.', '.', '.', '.'],
+        ['.', '.', '.', '.', '.', '.', '.', '.'],
+        ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
+        ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
+    ]
+    st.session_state.previous_board_status = [
+        ['black', 'black', 'black', 'black', 'black', 'black', 'black', 'black'],
+        ['black', 'black', 'black', 'black', 'black', 'black', 'black', 'black'],
+        ['empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty'],
+        ['empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty'],
+        ['empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty'],
+        ['empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty'],
+        ['white', 'white', 'white', 'white', 'white', 'white', 'white', 'white'],
+        ['white', 'white', 'white', 'white', 'white', 'white', 'white', 'white']
+    ]
+    st.session_state.white_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated"])
+    st.session_state.black_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated"])
+
 def render_board(board):
-    import chess.svg
     return chess.svg.board(board=board)
 
-
-def update_board_display(board, board_svg_placeholder):
-    import base64
+def update_board_display(board):
     board_svg = render_board(board)
     encoded_svg = base64.b64encode(board_svg.encode('utf-8')).decode('utf-8')
-    board_svg_placeholder.markdown(f'<img src="data:image/svg+xml;base64,{encoded_svg}" width="400"/>', unsafe_allow_html=True)
-
+    return f'<img src="data:image/svg+xml;base64,{encoded_svg}" width="400"/>'
 
 def detect_move(previous_board_status, new_board_status, chessboard):
     move = {}
@@ -25,7 +60,6 @@ def detect_move(previous_board_status, new_board_status, chessboard):
                     move['eliminated'] = chessboard[row][col]
     return move
 
-
 def update_chessboard(move, chessboard):
     start = move['start']
     end = move['end']
@@ -35,27 +69,29 @@ def update_chessboard(move, chessboard):
     return chessboard
 
 
-def check_win_condition(board, winner_announcement):
+def check_win_condition(board):
     if board.is_checkmate():
-        winner = "Black" if board.turn else "White"
-        winner_announcement.success(f"Checkmate! {winner} wins the game!")
-        return True
+        winner = "Black" if board.turn else "White"  # If it's White's turn and checkmate, Black wins and vice versa
+        return "success", f"Checkmate! {winner} wins the game!"
     elif board.is_stalemate():
-        winner_announcement.warning("The game is a draw due to stalemate!")
-        return True
+        return "warning", "The game is a draw due to stalemate!"
     elif board.is_insufficient_material():
-        winner_announcement.warning("The game is a draw due to insufficient material!")
-        return True
+        return "warning", "The game is a draw due to insufficient material!"
     elif board.is_seventyfive_moves():
-        winner_announcement.warning("The game is a draw due to the 75-move rule!")
-        return True
+        return "warning", "The game is a draw due to the 75-move rule!"
     elif board.is_fivefold_repetition():
-        winner_announcement.warning("The game is a draw due to fivefold repetition!")
-        return True
-    return False
+        return "warning", "The game is a draw due to fivefold repetition!"
+    return None, None
 
+def explain_illegal_move(board, chess_move):
+    if not chess_move in board.generate_legal_moves():
+        if chess_move not in board.generate_pseudo_legal_moves():
+            return "The move doesn't follow the rules for the piece or the board position."
+        else:
+            return "The move would place or leave the king in check."
+    return "Unknown reason"
 
-def export_to_pdf(st, canvas, white_moves, black_moves):
+def export_to_pdf(white_moves, black_moves):
     from io import BytesIO
     pdf = BytesIO()
     c = canvas.Canvas(pdf)
@@ -79,9 +115,4 @@ def export_to_pdf(st, canvas, white_moves, black_moves):
 
     c.save()
     pdf.seek(0)
-    st.download_button(
-        label="Download Move History as PDF",
-        data=pdf,
-        file_name="chess_move_history.pdf",
-        mime="application/pdf"
-    )
+    return pdf
