@@ -10,7 +10,7 @@ from reportlab.pdfgen import canvas
 import pandas as pd
 
 # Load your YOLOv8 model
-model = YOLO('weights/bestV8.pt')
+model = YOLO('weights/bestV7.pt')
 
 # Initialize board and move history
 if 'board' not in st.session_state:
@@ -54,6 +54,7 @@ st.title("Chessgame history detection")
 st.session_state.conf_threshold = 0.7
 
 warning = st.empty() 
+winner_announcement = st.empty()
 col1, col2 = st.columns(2)
 with col1:
     stframe = st.empty() 
@@ -108,6 +109,25 @@ def update_chessboard(move, chessboard):
     chessboard[end[0]][end[1]] = piece
     return chessboard
 
+def check_win_condition():
+    if board.is_checkmate():
+        winner = "Black" if board.turn else "White"  # If it's White's turn and checkmate, Black wins and vice versa
+        winner_announcement.success(f"Checkmate! {winner} wins the game!")
+        return True
+    elif board.is_stalemate():
+        winner_announcement.warning("The game is a draw due to stalemate!")
+        return True
+    elif board.is_insufficient_material():
+        winner_announcement.warning("The game is a draw due to insufficient material!")
+        return True
+    elif board.is_seventyfive_moves():
+        winner_announcement.warning("The game is a draw due to the 75-move rule!")
+        return True
+    elif board.is_fivefold_repetition():
+        winner_announcement.warning("The game is a draw due to fivefold repetition!")
+        return True
+    return False
+
 # Process the frame
 def process_frame(frame):
     
@@ -125,7 +145,7 @@ def process_frame(frame):
     predicted_class_names = [class_names[int(cls_idx)] for cls_idx in predicted_classes]    
 
     if len(xyxy) > 64:
-        if st.session_state.conf_threshold < 0.8:
+        if st.session_state.conf_threshold < 0.9:
             st.session_state.conf_threshold += 0.05
         det_boxes.write(f'number of detected boxes {len(xyxy)}, while expected is 64. new confidence = {st.session_state.conf_threshold}')
         return
@@ -142,7 +162,6 @@ def process_frame(frame):
     new_board_status = order_detections(boxes, predicted_class_names)
 
     move = detect_move(st.session_state.previous_board_status, new_board_status, st.session_state.chessboard)
-    st.session_state.previous_board_status = new_board_status
 
     if 'start' in move and 'end' in move:
         start_square = f"{chr(97 + move['start'][1])}{8 - move['start'][0]}"
@@ -154,7 +173,7 @@ def process_frame(frame):
         move_data = [piece_name, start_square, end_square, eliminated_piece]
 
         if chess_move in board.legal_moves:
-            warning = st.empty()
+            warning.empty()
 
             if move['piece'].startswith('w'):
                 white_moves.loc[len(white_moves)] = move_data
@@ -162,14 +181,16 @@ def process_frame(frame):
                 black_moves.loc[len(black_moves)] = move_data
 
             st.session_state.chessboard = update_chessboard(move, st.session_state.chessboard)
+            st.session_state.previous_board_status = new_board_status
 
             white_moves_placeholder.dataframe(white_moves)
             black_moves_placeholder.dataframe(black_moves)
         
             board.push(chess_move)
             update_board_display()
+            check_win_condition()
         else:
-            warning.warning(f"move {chess_move} is Illegal move")
+            warning.warning(f"move {chess_move} is Illegal move") # here what cause the error
 
 # Export move tables to PDF
 def export_to_pdf():
