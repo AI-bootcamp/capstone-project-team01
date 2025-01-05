@@ -133,6 +133,14 @@ def check_win_condition():
         return True
     return False
 
+def explain_illegal_move(board, chess_move):
+    if not chess_move in board.generate_legal_moves():
+        if chess_move not in board.generate_pseudo_legal_moves():
+            return "The move doesn't follow the rules for the piece or the board position."
+        else:
+            return "The move would place or leave the king in check."
+    return "Unknown reason"
+
 # Process the frame
 def process_frame(frame):
     
@@ -198,8 +206,8 @@ def process_frame(frame):
             update_board_display()
             check_win_condition()
         else:
-            warning.warning(f"move {chess_move} is Illegal move") # here what cause the error
-
+            reason = explain_illegal_move(board, chess_move)
+            warning.warning(f"Move {chess_move} is an illegal move: {reason}")
 # Export move tables to PDF
 def export_to_pdf():
     pdf = BytesIO()
