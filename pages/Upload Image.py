@@ -1,12 +1,17 @@
+
+import os 
+import sys 
 import streamlit as st
 import tempfile
 from ultralytics import YOLO
 import chess
 import chess.svg
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from helpers import *
 from chess_functions import *
 import pandas as pd
 import base64
+
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="Mid Chess Game Detection", page_icon="♟️")
@@ -18,8 +23,8 @@ model = YOLO('weights/bestV8.pt')
 def initialize_session_state():
     if 'conf_threshold' not in st.session_state:
         st.session_state.conf_threshold = 0.7
-    if 'chessboard' not in st.session_state:
-        st.session_state.chessboard = chess.Board()
+    if 'imported_board' not in st.session_state:
+        st.session_state.imported_board = chess.Board()
     if 'black_pawn_positions' not in st.session_state:
         st.session_state.black_pawn_positions = []
     if 'white_pawn_positions' not in st.session_state:
@@ -50,8 +55,8 @@ with col3:
     board_svg_placeholder = st.empty()
 
 # Update board display if it exists in session state
-if 'chessboard' in st.session_state:
-    board_svg_placeholder.markdown(update_board_display(st.session_state.chessboard), unsafe_allow_html=True)
+if 'imported_board' in st.session_state:
+    board_svg_placeholder.markdown(update_board_display(st.session_state.imported_board), unsafe_allow_html=True)
 
 # Helper function to process uploaded image
 def process_image(image_path):
@@ -66,9 +71,9 @@ def process_image(image_path):
         det_out.image(detection_vis, channels="BGR", use_container_width=True)
         
         st.session_state.previous_board_status = order_detections(boxes, predicted_class_names)
-        st.session_state.chessboard = update_board_and_extract_pawns(st.session_state.previous_board_status)
+        st.session_state.imported_board = update_board_and_extract_pawns(st.session_state.previous_board_status)
         st.session_state.image_processed.append(image_path)  # Mark image as processed
-        board_svg_placeholder.markdown(update_board_display(st.session_state.chessboard), unsafe_allow_html=True)
+        board_svg_placeholder.markdown(update_board_display(st.session_state.imported_board), unsafe_allow_html=True)
 
 # Helper function to update board and extract pawn positions
 def update_board_and_extract_pawns(board_status):
@@ -119,13 +124,13 @@ def apply_changes():
         piece_symbol = piece_map[st.session_state.piece_choice]
         piece = chess.Piece.from_symbol(piece_symbol.lower() if st.session_state.pawn_choice == "Black Pawns" else piece_symbol)
         square = chess.parse_square(st.session_state.selected_position)
-        st.session_state.chessboard.set_piece_at(square, piece)
+        st.session_state.imported_board.set_piece_at(square, piece)
 
         # Clear pending changes
         st.session_state.pending_changes = False
 
         # Update the displayed board
-        board_svg_placeholder.markdown(update_board_display(st.session_state.chessboard), unsafe_allow_html=True)
+        board_svg_placeholder.markdown(update_board_display(st.session_state.imported_board), unsafe_allow_html=True)
 
 # Upload and process image
 uploaded_file = st.file_uploader("Upload a chess image", type=["jpg", "jpeg", "png", "bmp"])
