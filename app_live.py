@@ -47,11 +47,11 @@ with black_sec:
 with board_sec:
     board_svg_placeholder = st.empty()
  
-# col21, col22 = st.columns(2)
-# with col1:
-#     prev_status_placeholder = st.empty() 
-# with col2:
-#     new_status_placeholder = st.empty()
+col21, col22 = st.columns(2)
+with col1:
+    prev_status_placeholder = st.empty() 
+with col2:
+    new_status_placeholder = st.empty()
 
 board_svg_placeholder.markdown(update_board_display(board), unsafe_allow_html=True)
 
@@ -86,8 +86,8 @@ def process_frame(frame):
     new_board_status = order_detections(boxes, predicted_class_names)
     
     # Display Board status if there are issues
-    # prev_status_placeholder.text("\n".join(str(row) for row in st.session_state.previous_board_status))
-    # new_status_placeholder.text("\n".join(str(row) for row in new_board_status))
+    prev_status_placeholder.text("\n".join(str(row) for row in st.session_state.previous_board_status))
+    new_status_placeholder.text("\n".join(str(row) for row in new_board_status))
 
     move = detect_move(st.session_state.previous_board_status, new_board_status, st.session_state.chessboard)
 
