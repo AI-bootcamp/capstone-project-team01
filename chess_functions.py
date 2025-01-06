@@ -11,7 +11,7 @@ piece_names = {
     'br': 'Rook', 'bn': 'Knight', 'bb': 'Bishop', 'bq': 'Queen', 'bk': 'King', 'bp': 'Pawn'
 }
 
-def start_game(chessboard = None):
+def start_game():
     st.session_state.board = chess.Board()
     st.session_state.move_history = []
     st.session_state.chessboard = [
@@ -61,9 +61,12 @@ def detect_move(previous_board_status, new_board_status, chessboard, board):
     
     # Suggest move only if just start is detected
     if 'start' in move and not 'end' in move:
-        move['end'] = suggest_move(move, board)
+        end_move = suggest_move(move, board)
+        if end_move:
+            move['end'] = end_move
+        else:
+            move['warning'] = 'No moves available'
         move['is_suggested'] = True
-
     return move
 
 def suggest_move(move, board: chess.Board):
