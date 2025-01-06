@@ -23,6 +23,10 @@ if 'board' not in st.session_state:
 st.session_state.conf_threshold = 0.7
 board = st.session_state.board
 
+
+black_pawn_positions = []
+white_pawn_positions = []
+
 # Placeholders
 st.title("Chess Game with Detection midway")
 warning = st.empty() 
@@ -35,7 +39,7 @@ with col2:
 with col3:
     board_svg_placeholder = st.empty()
 
-board_svg_placeholder.markdown(update_board_display(board), unsafe_allow_html=True)
+# board_svg_placeholder.markdown(update_board_display(board), unsafe_allow_html=True)
 
 # Process the image to detect chess pieces
 def process_image(imagePath):
@@ -51,27 +55,42 @@ def process_image(imagePath):
         det_out.image(detection_vis, channels="BGR", use_container_width=True)
         st.session_state.previous_board_status = order_detections(boxes, predicted_class_names)
         # Update the board based on detection results
-        st.session_state.chessboard = update_chess_board_from_detection(st.session_state.previous_board_status)
+        st.session_state.chessboard = update_board_and_extract_pawns(st.session_state.previous_board_status)
         print(st.session_state.chessboard)
         board_svg_placeholder.markdown(update_board_display(st.session_state.chessboard), unsafe_allow_html=True)
 
 # Helper function to update the chessboard based on detected pieces
-def update_chess_board_from_detection(board_status):
+def update_board_and_extract_pawns(board_status):
     """
-    Updates the chess.Board object based on the detected pieces' positions.
+    Updates the chess.Board object based on the detected pieces' positions 
+    and extracts the positions of pawns.
     """
     board = chess.Board(None)
 
-    # Iterate through the board status and set pieces in the correct squares
+    # Loop through the detected board status and update chessboard
     for row in range(8):
         for col in range(8):
-            piece_color = board_status[row][col]
+            piece_color = board_status[row][col]  
+
             if piece_color != 'empty':
                 piece_symbol = 'P' if piece_color == 'white' else 'p'  
-                square = chess.square(col, 7 - row) 
+                square = chess.square(col, 7 - row)  
+
                 board.set_piece_at(square, chess.Piece.from_symbol(piece_symbol))
+                
+                # Check if the placed piece is a pawn and extract its position
+                piece = board.piece_at(square)
+                if piece and piece.piece_type == chess.PAWN:
+                    if piece.color == chess.BLACK:
+                        black_pawn_positions.append(to_chess_notation(row, col))
+                    elif piece.color == chess.WHITE:
+                        white_pawn_positions.append(to_chess_notation(row, col))
 
     return board
+
+# Helper function to convert row/column to chess notation
+def to_chess_notation(row, col):
+    return f"{chr(col + 97)}{8 - row}"
 
 # Upload and process image
 uploaded_file = st.file_uploader("Upload a chess image", type=["jpg", "jpeg", "png", "bmp"])
@@ -83,3 +102,22 @@ if uploaded_file:
         image_out.image(temp_image_path, caption="Uploaded Image", use_container_width=True)
 
         process_image(temp_image_path)
+
+
+pawn_choice = st.radio("Select Pawn Color", ("Black Pawns", "White Pawns"),None)
+available_pieces = ["Knight", "Rook", "Bishop", "Queen", "King"]
+
+if pawn_choice == "Black Pawns":
+    if black_pawn_positions:  
+        st.selectbox("Black Pawn Positions:", options=black_pawn_positions)
+        piece_choice = st.radio("Choose a piece to place:", available_pieces,None)
+
+    else:
+        st.write("Upload image to detect pieces.")
+else:
+    if white_pawn_positions: 
+        st.selectbox("White Pawn Positions:", options=white_pawn_positions)
+        piece_choice = st.radio("Choose a piece to place:", available_pieces,None)
+    else:
+        st.write("Upload image to detect pieces.")
+
