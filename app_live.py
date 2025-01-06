@@ -7,7 +7,7 @@ import chess
 import chess.svg
 
 # Load your YOLOv8 model
-model = YOLO('weights/bestV8.pt')
+model = YOLO('weights/bestV9.pt')
 
 # Initialize variables
 if 'board' not in st.session_state:
@@ -87,7 +87,10 @@ def process_frame(frame):
 
     move = detect_move(st.session_state.previous_board_status, new_board_status, st.session_state.chessboard, board)
     is_suggested = move.get('is_suggested', False)
-
+    move_warning = move.get('warning', '')
+    if move_warning:
+        suggested_move.write(move_warning)
+        return
     if 'start' in move and 'end' in move:
         start_square = f"{chr(97 + move['start'][1])}{8 - move['start'][0]}"
         end_square = f"{chr(97 + move['end'][1])}{8 - move['end'][0]}"
@@ -101,7 +104,7 @@ def process_frame(frame):
             suggested_move.write(f'suggested move is: {move_data}')
             return
         suggested_move.empty()
-        
+
         if chess_move in board.legal_moves:
             warning.empty()
 
