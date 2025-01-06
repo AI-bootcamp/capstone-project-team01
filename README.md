@@ -12,13 +12,32 @@ This project implements a real-time chess game move detection and tracking syste
 - **Export to PDF**: Download the move history as a PDF file.
 
 ## Technologies and Libraries
-- **Python**  
-- **Streamlit** – For the user interface and real-time display  
-- **YOLO (Ultralytics)** – Object detection model for recognizing chess pieces  
-- **OpenCV** – Capturing video feed from webcam  
-- **Python-Chess** – Managing chess logic and move legality  
-- **ReportLab** – Generating PDFs  
-- **Pandas** – Handling and displaying move history  
+- ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)  
+- ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white) – For the user interface and real-time display  
+- ![YOLO](https://img.shields.io/badge/YOLO-00FFFF?style=for-the-badge&logo=yolo&logoColor=black) – Object detection model for recognizing chess pieces  
+- ![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white) – Capturing video feed from webcam  
+- ![Python-Chess](https://img.shields.io/badge/Python--Chess-FFD43B?style=for-the-badge&logo=python&logoColor=darkgreen) – Managing chess logic and move legality  
+- ![ReportLab](https://img.shields.io/badge/ReportLab-FF8C00?style=for-the-badge) – Generating PDFs  
+- ![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white) – Handling and displaying move history  
+
+## Project Directory Structure
+```bash
+📂 Chess-Detection-Tracking
+│
+├── 📁 weights
+│   └── bestV9.pt
+│
+├── 📁 helpers
+│   └── __init__.py
+│
+├── 📁 models
+│   └── model.py
+│
+├── app.py
+├── requirements.txt
+├── README.md
+└── .gitignore
+
 
 ## Installation and Setup
 ### Prerequisites
@@ -36,10 +55,10 @@ cd <repository-folder>
 ```
 
 ### Model Weights
-Place the YOLOv8 model weights (e.g., `bestV7.pt`) in a `weights` directory:
+Place the YOLOv11 model weights (e.g., `bestV9.pt`) in a `weights` directory:
 ```
 weights/
-    bestV7.pt
+    bestV9.pt
 ```
 
 ### Run the Application
@@ -57,7 +76,7 @@ streamlit run app.py
 ## Key Components
 ### Model Loading
 ```python
-model = YOLO('weights/bestV7.pt')
+model = YOLO('weights/bestV9.pt')
 ```
 The YOLO model is loaded to detect chess pieces from the video frames.
 
