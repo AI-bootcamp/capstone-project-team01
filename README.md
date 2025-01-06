@@ -23,7 +23,6 @@ This project implements a real-time chess game move detection and tracking syste
 </p>
 
 ## Project Directory Structure
-
 📂 Chess-Detection-Tracking
 │
 ├── 📁 .github
@@ -73,8 +72,7 @@ cd <repository-folder>
 ### Model Weights
 Place the YOLOv11 model weights (e.g., `bestV9.pt`) in a `weights` directory:
 ```
-weights/
-    bestV9.pt
+weights/bestV9.pt
 ```
 
 ### Run the Application
