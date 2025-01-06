@@ -1,16 +1,10 @@
-
-import os 
-import sys 
 import streamlit as st
 import tempfile
 from ultralytics import YOLO
 import chess
 import chess.svg
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from helpers import *
+from frame_processing_functions import *
 from chess_functions import *
-import pandas as pd
-import base64
 
 
 # Set Streamlit page configuration

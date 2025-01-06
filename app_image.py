@@ -1,14 +1,18 @@
 import streamlit as st
 import cv2
+import tempfile
 from ultralytics import YOLO
-from chess_functions import *
 from frame_processing_functions import *
 import chess
 import chess.svg
+from io import BytesIO
+import pandas as pd
+from chess_functions import *
 
+# Load YOLO model
 model = YOLO('weights/bestV9.pt')
 
-st.set_page_config(page_title="Mid Chess Game Detection", page_icon="♟️")
+st.set_page_config(page_title="Image Chess Game Detection", page_icon="♟️")
 
 # Initialize variables
 if 'board' not in st.session_state:
@@ -25,9 +29,9 @@ st.session_state.conf_threshold = 0.7
 st.title("Chessgame history detection")
 warning_placeholder = st.empty() 
 result_announcement = st.empty()
-frame_col, detection_col2 = st.columns(2)
-with frame_col:
-    frame_placeholder = st.empty() 
+image_col, detection_col2 = st.columns(2)
+with image_col:
+    image_placeholder = st.empty() 
 with detection_col2:
     detection_placeholder = st.empty()
 
@@ -53,9 +57,9 @@ with new_col:
 # Display the Initial board
 board_svg_placeholder.markdown(update_board_display(st.session_state.board), unsafe_allow_html=True)
 
-# Process frame function
-def process_frame(frame):
-    results = model.predict(source=frame, conf=st.session_state.conf_threshold)
+# Process the image to detect chess pieces
+def process_image(imagePath):
+    results = model.predict(source=imagePath, conf=st.session_state.conf_threshold)
     boxes_no = len(results[0].boxes.xyxy)
 
     # Ensuring that only 64 boxes are detected
@@ -147,33 +151,17 @@ def process_frame(frame):
             reason = explain_illegal_move(st.session_state.board, chess_move)
             warning_placeholder.warning(f"Move {chess_move} is an illegal move: {reason}")
 
-# Live webcam feed
-def live_camera_feed():
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        st.error("Unable to access the camera.")
-        return
 
-    skip_frame = 0
+# Upload and process image
+uploaded_file = st.file_uploader("Upload a chess image", type=["jpg", "jpeg", "png", "bmp"])
+if uploaded_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_image:
+        temp_image.write(uploaded_file.read())
+        temp_image_path = temp_image.name
 
-    try:
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                warning_placeholder.warning("Failed to capture frame. Retrying...")
-                continue
+        image_placeholder.image(temp_image_path, caption="Uploaded Image", use_container_width=True)
 
-            # Process every 30th frame
-            if skip_frame % 30 == 0:
-                # Display the live video frame
-                frame_placeholder.image(frame, channels="BGR", use_container_width=True)
-                process_frame(frame)
-
-            skip_frame += 1
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
-    finally:
-        cap.release() 
+        process_image(temp_image_path)
 
 # Button to export to PDF
 if st.button("Export Move Tables to PDF"):
@@ -184,5 +172,3 @@ if st.button("Export Move Tables to PDF"):
         file_name="chess_move_history.pdf",
         mime="application/pdf"
     )
-
-live_camera_feed()
