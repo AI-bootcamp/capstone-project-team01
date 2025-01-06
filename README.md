@@ -52,7 +52,28 @@ This project implements a real-time chess game move detection and tracking syste
 ├── README.md
 └── .gitignore
 
+## Dataset Information
+The dataset used for training this model was collected personally by capturing images of a chessboard under various lighting conditions and angles. Each image was annotated manually to segment the chessboard into three classes:
+- **White (Square)**
+- **Black (Square)**
+- **Empty (Square)**
 
+### Dataset Overview
+- **Total Images**: 54
+- **Train Set**: 45 images (83%)
+- **Validation Set**: 6 images (11%)
+- **Test Set**: 3 images (6%)
+
+### Preprocessing
+- **Auto-Orientation**: Applied
+- **Resize**: Images resized to 640x640
+
+### Augmentations
+- **Outputs per Training Example**: 3
+- **Flip**: Horizontal, Vertical
+- **Brightness Adjustment**: Randomized between -20% and +20%
+
+This dataset ensures robust detection of chess pieces and empty squares by training the model across different orientations and brightness levels.
 
 ## Installation and Setup
 ### Prerequisites
