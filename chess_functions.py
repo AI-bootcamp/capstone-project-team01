@@ -4,6 +4,7 @@ import chess.svg
 import pandas as pd
 import base64
 from reportlab.pdfgen import canvas
+import chess.engine
 
 # Variables
 piece_names = {
@@ -45,7 +46,7 @@ def update_board_display(board):
     encoded_svg = base64.b64encode(board_svg.encode('utf-8')).decode('utf-8')
     return f'<img src="data:image/svg+xml;base64,{encoded_svg}" width="400"/>'
 
-def detect_move(previous_board_status, new_board_status, chessboard):
+def detect_move(previous_board_status, new_board_status, chessboard, board: chess.Board):
     move = {}
     for row in range(len(previous_board_status)):
         for col in range(len(previous_board_status[row])):
@@ -55,10 +56,67 @@ def detect_move(previous_board_status, new_board_status, chessboard):
                     move['piece'] = chessboard[row][col]
                 elif previous_board_status[row][col] == 'empty' and new_board_status[row][col] != 'empty':
                     move['end'] = (row, col)
-                elif previous_board_status[row][col] != new_board_status[row][col]:
-                    move['end'] = (row, col)
-                    move['eliminated'] = chessboard[row][col]
-    return move
+                    move['captured'] = chessboard[row][col] if chessboard[row][col] != 'empty' else None
+
+    # Suggest move only if just start is detected
+    if 'start' in move and 'end' in move:
+        move['end'] = suggest_move(move, board)
+        return move
+
+    return None
+
+
+def suggest_full_move(board: chess.Board):
+    engine_path = "stockfish"
+    engine = chess.engine.SimpleEngine.popen_uci(engine_path)
+    
+    try:
+        # Get the best move from Stockfish
+        result = engine.play(board, chess.engine.Limit(time=0.5))
+        best_move = result.move
+
+        # Convert the move to row-column format
+        start_square = best_move.from_square
+        end_square = best_move.to_square
+        
+        # Check for any eliminated piece
+        eliminated_piece = board.piece_at(end_square)  # Get the piece at the destination square
+        eliminated_piece_str = (
+            eliminated_piece.symbol() if eliminated_piece else None
+        )  # Symbol of the eliminated piece (e.g., 'p', 'N')
+
+        if eliminated_piece_str:
+            if eliminated_piece_str.isupper():  # Uppercase indicates a white piece
+                eliminated_piece_str = 'w' + eliminated_piece_str.lower()
+            else:  # Lowercase indicates a black piece
+                eliminated_piece_str = 'b' + eliminated_piece_str.lower()
+
+
+        # Construct the move dictionary
+        move = {
+            'start': (7 - chess.square_rank(start_square), chess.square_file(start_square)),
+            'end': (7 - chess.square_rank(end_square), chess.square_file(end_square)),
+            'is_suggested': True,
+            'eliminated': eliminated_piece_str,
+        }
+        return move
+    finally:
+        engine.quit()
+
+
+
+def suggest_move(move, board: chess.Board):
+    start_square = chess.square(move['start'][1], 7 - move['start'][0])
+    legal_moves = [m for m in board.legal_moves if m.from_square == start_square]
+
+    if legal_moves:
+        # Choose the best move for the piece (heuristic or Stockfish evaluation)
+        suggested_move = legal_moves[0]
+        end_square = suggested_move.to_square
+        return (7 - chess.square_rank(end_square), chess.square_file(end_square))
+
+    return None  # No legal moves available
+
 
 def update_chessboard(move, chessboard):
     start = move['start']
