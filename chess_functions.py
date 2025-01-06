@@ -45,7 +45,7 @@ def update_board_display(board):
     encoded_svg = base64.b64encode(board_svg.encode('utf-8')).decode('utf-8')
     return f'<img src="data:image/svg+xml;base64,{encoded_svg}" width="400"/>'
 
-def detect_move(previous_board_status, new_board_status, chessboard):
+def detect_move(previous_board_status, new_board_status, chessboard, board):
     move = {}
     for row in range(len(previous_board_status)):
         for col in range(len(previous_board_status[row])):
@@ -58,7 +58,25 @@ def detect_move(previous_board_status, new_board_status, chessboard):
                 elif previous_board_status[row][col] != new_board_status[row][col]:
                     move['end'] = (row, col)
                     move['eliminated'] = chessboard[row][col]
+    
+    # Suggest move only if just start is detected
+    if 'start' in move and not 'end' in move:
+        move['end'] = suggest_move(move, board)
+        move['is_suggested'] = True
+
     return move
+
+def suggest_move(move, board: chess.Board):
+    start_square = chess.square(move['start'][1], 7 - move['start'][0])
+    legal_moves = [m for m in board.legal_moves if m.from_square == start_square]
+
+    if legal_moves:
+        # Choose the best move for the piece (heuristic or Stockfish evaluation)
+        suggested_move = legal_moves[0]
+        end_square = suggested_move.to_square
+        return (7 - chess.square_rank(end_square), chess.square_file(end_square))
+
+    return None  # No legal moves available
 
 def update_chessboard(move, chessboard):
     start = move['start']

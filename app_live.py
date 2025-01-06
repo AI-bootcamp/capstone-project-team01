@@ -5,13 +5,9 @@ from chess_functions import *
 from helpers import *
 import chess
 import chess.svg
-from io import BytesIO
-import base64
-from reportlab.pdfgen import canvas
-import pandas as pd
 
 # Load your YOLOv8 model
-model = YOLO('weights/bestV7.pt')
+model = YOLO('weights/bestV8.pt')
 
 # Initialize variables
 if 'board' not in st.session_state:
@@ -35,7 +31,7 @@ with col2:
     stdetected_boxes = st.empty()
 
 det_boxes_summary = st.empty()
-
+suggested_move = st.empty()
 
 white_sec, black_sec, board_sec = st.columns(3)
 with white_sec:
@@ -89,7 +85,8 @@ def process_frame(frame):
     prev_status_placeholder.text("\n".join(str(row) for row in st.session_state.previous_board_status))
     new_status_placeholder.text("\n".join(str(row) for row in new_board_status))
 
-    move = detect_move(st.session_state.previous_board_status, new_board_status, st.session_state.chessboard)
+    move = detect_move(st.session_state.previous_board_status, new_board_status, st.session_state.chessboard, board)
+    is_suggested = move.get('is_suggested', False)
 
     if 'start' in move and 'end' in move:
         start_square = f"{chr(97 + move['start'][1])}{8 - move['start'][0]}"
@@ -100,6 +97,11 @@ def process_frame(frame):
         chess_move = chess.Move.from_uci(f"{start_square}{end_square}")
         move_data = [piece_name, start_square, end_square, eliminated_piece]
 
+        if is_suggested:
+            suggested_move.write(f'suggested move is: {move_data}')
+            return
+        suggested_move.empty()
+        
         if chess_move in board.legal_moves:
             warning.empty()
 
