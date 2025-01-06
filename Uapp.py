@@ -2,7 +2,7 @@ import streamlit as st
 import cv2
 import tempfile
 from ultralytics import YOLO
-from helpers import *
+from frame_processing_functions import *
 import chess
 import chess.svg
 from io import BytesIO

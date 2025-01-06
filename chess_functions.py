@@ -7,23 +7,13 @@ from reportlab.pdfgen import canvas
 
 # Variables
 piece_names = {
-    'wr': 'Rook', 'wn': 'Knight', 'wb': 'Bishop', 'wq': 'Queen', 'wk': 'King', 'wp': 'Pawn',
-    'br': 'Rook', 'bn': 'Knight', 'bb': 'Bishop', 'bq': 'Queen', 'bk': 'King', 'bp': 'Pawn'
+    'P': 'pawn', 'N': 'knight', 'B': 'bishop', 'R': 'rook', 'Q': 'queen', 'K': 'king',
+    'p': 'pawn', 'n': 'knight', 'b': 'bishop', 'r': 'rook',    'q': 'queen', 'k': 'king',
 }
 
 def start_game():
     st.session_state.board = chess.Board()
     st.session_state.move_history = []
-    st.session_state.chessboard = [
-        ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
-        ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
-        ['.', '.', '.', '.', '.', '.', '.', '.'],
-        ['.', '.', '.', '.', '.', '.', '.', '.'],
-        ['.', '.', '.', '.', '.', '.', '.', '.'],
-        ['.', '.', '.', '.', '.', '.', '.', '.'],
-        ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
-        ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
-    ]
     st.session_state.previous_board_status = [
         ['black', 'black', 'black', 'black', 'black', 'black', 'black', 'black'],
         ['black', 'black', 'black', 'black', 'black', 'black', 'black', 'black'],
@@ -34,30 +24,46 @@ def start_game():
         ['white', 'white', 'white', 'white', 'white', 'white', 'white', 'white'],
         ['white', 'white', 'white', 'white', 'white', 'white', 'white', 'white']
     ]
-    st.session_state.white_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated"])
-    st.session_state.black_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated"])
+    st.session_state.white_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated", "castle"])
+    st.session_state.black_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated", "castle"])
 
-def render_board(board):
-    return chess.svg.board(board=board)
 
 def update_board_display(board):
-    board_svg = render_board(board)
+    board_svg = chess.svg.board(board=board)
     encoded_svg = base64.b64encode(board_svg.encode('utf-8')).decode('utf-8')
     return f'<img src="data:image/svg+xml;base64,{encoded_svg}" width="400"/>'
 
-def detect_move(previous_board_status, new_board_status, chessboard, board):
+def detect_move(previous_board_status, new_board_status, board):
     move = {}
+    starts = 0
+    ends = 0
     for row in range(len(previous_board_status)):
         for col in range(len(previous_board_status[row])):
             if previous_board_status[row][col] != new_board_status[row][col]:
+                square = chess.square(col, 7 - row) # Returns int
+                square_name = chess.square_name(chess.square(col, 7 - row)) # Returns str 'f2' 
                 if new_board_status[row][col] == 'empty' and previous_board_status[row][col] != 'empty':
-                    move['start'] = (row, col)
-                    move['piece'] = chessboard[row][col]
+                    starts += 1
+                    move['start'] = square_name
+                    move['piece'] = piece_names[board.piece_at(square).symbol()] # map piece symbol to its name
                 elif previous_board_status[row][col] == 'empty' and new_board_status[row][col] != 'empty':
-                    move['end'] = (row, col)
+                    ends +=1
+                    move['end'] = square_name
                 elif previous_board_status[row][col] != new_board_status[row][col]:
-                    move['end'] = (row, col)
-                    move['eliminated'] = chessboard[row][col]
+                    ends +=1
+                    move['end'] = square_name
+                    move['eliminated'] = board.piece_at(square)
+
+    # check for castle movement
+    if 'start' in move and 'end' in move:
+        if move['start'] == "e1" and move['end'] == "g1":
+            move['castle'] = "white_kingside"
+        elif move['start'] == "e1" and move['end'] == "c1":
+            move['castle'] = "white_queenside"
+        elif move['start'] == "e8" and move['end'] == "g8":
+            move['castle'] = "black_kingside"
+        elif move['start'] == "e8" and move['end'] == "c8":
+            move['castle'] = "black_queenside"
     
     # Suggest move only if just start is detected
     if 'start' in move and not 'end' in move:
@@ -70,14 +76,14 @@ def detect_move(previous_board_status, new_board_status, chessboard, board):
     return move
 
 def suggest_move(move, board: chess.Board):
-    start_square = chess.square(move['start'][1], 7 - move['start'][0])
+    start_square = chess.parse_square(move['start'])
     legal_moves = [m for m in board.legal_moves if m.from_square == start_square]
 
     if legal_moves:
         # Choose the best move for the piece (heuristic or Stockfish evaluation)
         suggested_move = legal_moves[0]
         end_square = suggested_move.to_square
-        return (7 - chess.square_rank(end_square), chess.square_file(end_square))
+        return chess.square_name(end_square)
 
     return None  # No legal moves available
 
