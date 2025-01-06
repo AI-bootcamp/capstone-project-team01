@@ -11,7 +11,7 @@ piece_names = {
     'br': 'Rook', 'bn': 'Knight', 'bb': 'Bishop', 'bq': 'Queen', 'bk': 'King', 'bp': 'Pawn'
 }
 
-def start_game(chessboard = None):
+def start_game(chessboard=None):
     st.session_state.board = chess.Board()
     st.session_state.move_history = []
     st.session_state.chessboard = [
@@ -34,19 +34,49 @@ def start_game(chessboard = None):
         ['white', 'white', 'white', 'white', 'white', 'white', 'white', 'white'],
         ['white', 'white', 'white', 'white', 'white', 'white', 'white', 'white']
     ]
-    st.session_state.white_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated"])
-    st.session_state.black_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated"])
+    st.session_state.white_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated", "Castling", "Rook From", "Rook To"])
+    st.session_state.black_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated", "Castling", "Rook From", "Rook To"])
+
 
 def render_board(board):
     return chess.svg.board(board=board)
+
 
 def update_board_display(board):
     board_svg = render_board(board)
     encoded_svg = base64.b64encode(board_svg.encode('utf-8')).decode('utf-8')
     return f'<img src="data:image/svg+xml;base64,{encoded_svg}" width="400"/>'
 
+
 def detect_move(previous_board_status, new_board_status, chessboard):
     move = {}
+
+    # Castling detection
+    castling_moves = {
+        ('e1', 'g1'): ('h1', 'f1'),  # White kingside
+        ('e1', 'c1'): ('a1', 'd1'),  # White queenside
+        ('e8', 'g8'): ('h8', 'f8'),  # Black kingside
+        ('e8', 'c8'): ('a8', 'd8')   # Black queenside
+    }
+
+    for (king_from, king_to), (rook_from, rook_to) in castling_moves.items():
+        king_row = 7 if '1' in king_from else 0  # Row 7 for white, 0 for black
+
+        if previous_board_status[king_row][4] == 'wk' and new_board_status[king_row][6] == 'wk':
+            move['piece'] = 'wk'
+            move['start'] = (king_row, 4)
+            move['end'] = (king_row, 6)
+            move['castling'] = ('wr', (king_row, 7), (king_row, 5))
+            return move
+
+        elif previous_board_status[king_row][4] == 'wk' and new_board_status[king_row][2] == 'wk':
+            move['piece'] = 'wk'
+            move['start'] = (king_row, 4)
+            move['end'] = (king_row, 2)
+            move['castling'] = ('wr', (king_row, 0), (king_row, 3))
+            return move
+
+    # Standard move detection
     for row in range(len(previous_board_status)):
         for col in range(len(previous_board_status[row])):
             if previous_board_status[row][col] != new_board_status[row][col]:
@@ -58,7 +88,9 @@ def detect_move(previous_board_status, new_board_status, chessboard):
                 elif previous_board_status[row][col] != new_board_status[row][col]:
                     move['end'] = (row, col)
                     move['eliminated'] = chessboard[row][col]
+
     return move
+
 
 def update_chessboard(move, chessboard):
     start = move['start']
