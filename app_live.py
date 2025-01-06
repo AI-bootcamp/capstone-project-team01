@@ -130,7 +130,7 @@ def process_frame(frame):
 
 # Live webcam feed
 def live_camera_feed():
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     if not cap.isOpened():
         st.error("Unable to access the camera.")
         return
