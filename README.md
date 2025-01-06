@@ -23,6 +23,7 @@ This project implements a real-time chess game move detection and tracking syste
 </p>
 
 ## Project Directory Structure
+```
 📂 Chess-Detection-Tracking
 │
 ├── 📁 .github
@@ -51,6 +52,7 @@ This project implements a real-time chess game move detection and tracking syste
 ├── requirements.txt
 ├── README.md
 └── .gitignore
+```
 
 ## Dataset Information
 The dataset used for training this model was collected personally by capturing images of a chessboard under various lighting conditions and angles. Each image was annotated manually to segment the chessboard into three classes:
