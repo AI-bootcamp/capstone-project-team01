@@ -12,13 +12,15 @@ This project implements a real-time chess game move detection and tracking syste
 - **Export to PDF**: Download the move history as a PDF file.
 
 ## Technologies and Libraries
-- ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)  
-- ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white) – For the user interface and real-time display  
-- ![YOLO](https://img.shields.io/badge/YOLO-00FFFF?style=for-the-badge&logo=yolo&logoColor=black) – Object detection model for recognizing chess pieces  
-- ![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white) – Capturing video feed from webcam  
-- ![Python-Chess](https://img.shields.io/badge/Python--Chess-FFD43B?style=for-the-badge&logo=python&logoColor=darkgreen) – Managing chess logic and move legality  
-- ![ReportLab](https://img.shields.io/badge/ReportLab-FF8C00?style=for-the-badge) – Generating PDFs  
-- ![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white) – Handling and displaying move history  
+<p align="center">
+    <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white">
+    <img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white">
+    <img src="https://img.shields.io/badge/YOLO-00FFFF?style=for-the-badge&logo=yolo&logoColor=black">
+    <img src="https://img.shields.io/badge/OpenCV-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white">
+    <img src="https://img.shields.io/badge/Python--Chess-FFD43B?style=for-the-badge&logo=python&logoColor=darkgreen">
+    <img src="https://img.shields.io/badge/ReportLab-FF8C00?style=for-the-badge">
+    <img src="https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white">
+</p>
 
 ## Project Directory Structure
 ```bash
