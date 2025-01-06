@@ -23,8 +23,20 @@ This project implements a real-time chess game move detection and tracking syste
 </p>
 
 ## Project Directory Structure
-```bash
+
 📂 Chess-Detection-Tracking
+│
+├── 📁 .github
+│
+├── 📁 __pycache__
+│
+├── 📁 model testing
+│
+├── 📁 pages
+│
+├── 📁 stockfish
+│
+├── 📁 training images
 │
 ├── 📁 weights
 │   └── bestV9.pt
@@ -32,13 +44,15 @@ This project implements a real-time chess game move detection and tracking syste
 ├── 📁 helpers
 │   └── __init__.py
 │
-├── 📁 models
-│   └── model.py
-│
+├── Uapp.py
 ├── app.py
+├── app_live.py
+├── app_live_castling.py
+├── chess_functions.py
 ├── requirements.txt
 ├── README.md
 └── .gitignore
+
 
 
 ## Installation and Setup
