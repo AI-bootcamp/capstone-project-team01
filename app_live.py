@@ -8,7 +8,7 @@ import chess.svg
 
 model = YOLO('weights/bestV9.pt')
 
-st.set_page_config(page_title="Mid Chess Game Detection", page_icon="♟️")
+st.set_page_config(page_title="Live Chess Game Detection", page_icon="♟️")
 
 # Initialize variables
 if 'board' not in st.session_state:

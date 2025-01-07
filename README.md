@@ -1,7 +1,7 @@
 # Chess Game Detection and Move Tracking
 
 ## Project Overview
-This project implements a real-time chess game move detection and tracking system using Streamlit, YOLO (You Only Look Once) object detection, and OpenCV. The application utilizes a webcam feed to analyze and recognize chessboard movements, tracks the game progress, and generates a move history. Additionally, users can export the move history to a PDF file.
+This project implements a real-time chess game move detection using YOLO (You Only Look Once), OpenCV and Streamlit. The application utilizes a webcam feed to analyze and recognize chessboard movements, tracks the game progress, and generates a move history and export it to PDF file . Additionally, suggest moves to user using the Stockfish chess engine.
 
 ## Features
 - **Real-time Chess Detection**: Use the webcam to capture and analyze chessboard movements.
@@ -9,6 +9,7 @@ This project implements a real-time chess game move detection and tracking syste
 - **Chessboard Rendering**: Displays the current state of the chessboard using SVG rendering.
 - **Move History Tracking**: Logs each move made by white and black players.
 - **Illegal Move Detection**: Alerts if an illegal move is detected.
+- **Move Suggestion**: Provide the user with possible move options for their pieces.
 - **Export to PDF**: Download the move history as a PDF file.
 
 ## Technologies and Libraries
@@ -83,7 +84,7 @@ Ensure you have Python 3.8 or higher installed.
 
 ### Install Dependencies
 ```bash
-pip install streamlit ultralytics opencv-python-headless chess pandas reportlab
+pip install -r requirements.txt
 ```
 
 ### Clone the Repository
