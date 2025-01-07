@@ -15,24 +15,16 @@ model = YOLO('weights/bestV8.pt')
 
 # Initialize session state
 def initialize_session_state():
-    if 'conf_threshold' not in st.session_state:
-        st.session_state.conf_threshold = 0.7
+    st.session_state.conf_threshold = 0.7
     if 'imported_board' not in st.session_state:
         st.session_state.imported_board = chess.Board()
-    if 'black_pawn_positions' not in st.session_state:
+        st.session_state.previous_board_status = map_board_to_board_status(st.session_state.imported_board)
         st.session_state.black_pawn_positions = []
-    if 'white_pawn_positions' not in st.session_state:
         st.session_state.white_pawn_positions = []
-    if 'previous_board_status' not in st.session_state:
-        st.session_state.previous_board_status = None
-    if 'selected_position' not in st.session_state:
         st.session_state.selected_position = None
-    if 'piece_choice' not in st.session_state:
-        st.session_state.piece_choice = None
     if 'image_processed' not in st.session_state:
-        st.session_state.image_processed = []
-    if 'pending_changes' not in st.session_state:
-        st.session_state.pending_changes = False
+        st.session_state.image_processed = False
+        st.session_state.saved_boards = []
 
 initialize_session_state()
 
@@ -40,17 +32,26 @@ initialize_session_state()
 st.title("Chess Game with Detection Midway")
 warning = st.empty()
 result_announcement = st.empty()
-col1, col2, col3 = st.columns(3)
+col1, col2 = st.columns(2)
 with col1:
     det_out = st.empty()
 with col2:
-    image_out = st.empty()
-with col3:
+    board_status_placeholder = st.empty()
+
+col21, col22 = st.columns(2)
+with col21:
     board_svg_placeholder = st.empty()
+with col22:
+    image_out = st.empty()
 
 # Update board display if it exists in session state
 if 'imported_board' in st.session_state:
     board_svg_placeholder.markdown(update_board_display(st.session_state.imported_board), unsafe_allow_html=True)
+    st.session_state.previous_board_status = map_board_to_board_status(st.session_state.imported_board)
+    board_status_placeholder.pyplot(display_board_status(st.session_state.previous_board_status))
+
+if 'detection_vis' in st.session_state:
+    det_out.image(st.session_state.detection_vis, channels="BGR", use_container_width=True)
 
 # Helper function to process uploaded image
 def process_image(image_path):
@@ -61,12 +62,13 @@ def process_image(image_path):
         class_names = model.names
         predicted_class_names = [class_names[int(cls)] for cls in predicted_classes]
         
-        detection_vis = results[0].plot()
-        det_out.image(detection_vis, channels="BGR", use_container_width=True)
+        st.session_state.detection_vis = results[0].plot()
+        det_out.image(st.session_state.detection_vis, channels="BGR", use_container_width=True)
         
         st.session_state.previous_board_status = order_detections(boxes, predicted_class_names)
+        board_status_placeholder.pyplot(display_board_status(st.session_state.previous_board_status))
         st.session_state.imported_board = update_board_and_extract_pawns(st.session_state.previous_board_status)
-        st.session_state.image_processed.append(image_path)  # Mark image as processed
+        st.session_state.image_processed = True
         board_svg_placeholder.markdown(update_board_display(st.session_state.imported_board), unsafe_allow_html=True)
 
 # Helper function to update board and extract pawn positions
@@ -126,6 +128,11 @@ def apply_changes():
         # Update the displayed board
         board_svg_placeholder.markdown(update_board_display(st.session_state.imported_board), unsafe_allow_html=True)
 
+def save_board():
+    print("WILL SAVE BOARD")
+    st.session_state.saved_boards.append({f"Board {len(st.session_state.saved_boards)}" : st.session_state.imported_board})
+
+
 # Upload and process image
 uploaded_file = st.file_uploader("Upload a chess image", type=["jpg", "jpeg", "png", "bmp"])
 if uploaded_file and not st.session_state.image_processed:
@@ -133,8 +140,7 @@ if uploaded_file and not st.session_state.image_processed:
         temp_image.write(uploaded_file.read())
         temp_image_path = temp_image.name
         image_out.image(temp_image_path, caption="Uploaded Image", use_container_width=True)
-        if not temp_image_path in st.session_state.image_processed:
-            process_image(temp_image_path)
+        process_image(temp_image_path)
 
 # Define available pieces and map
 available_pieces = ["Knight", "Rook", "Bishop", "Queen", "King"]
@@ -154,3 +160,6 @@ handle_pawn_selection(pawn_choice)
 # Apply changes button
 if st.button("Apply Changes"):
     apply_changes()
+
+if st.button(f"Save Board as Board {len(st.session_state.saved_boards)}"):
+    save_board()
