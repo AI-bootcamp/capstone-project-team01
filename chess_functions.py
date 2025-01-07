@@ -4,26 +4,31 @@ import chess.svg
 import pandas as pd
 import base64
 from reportlab.pdfgen import canvas
+from frame_processing_functions import *
 
 # Variables
+stockfish_path = "stockfish"
+
+classification_thresholds = [
+    (0.00, 0.00, "Best"),
+    (0.00, 0.02, "Excellent"),
+    (0.02, 0.05, "Good"),
+    (0.05, 0.10, "Inaccuracy"),
+    (0.10, 0.20, "Mistake"),
+    (0.20, 1.00, "Blunder"),
+]
+
 piece_names = {
     'P': 'pawn', 'N': 'knight', 'B': 'bishop', 'R': 'rook', 'Q': 'queen', 'K': 'king',
     'p': 'pawn', 'n': 'knight', 'b': 'bishop', 'r': 'rook',    'q': 'queen', 'k': 'king',
 }
 
-def start_game():
-    st.session_state.board = chess.Board()
-    st.session_state.move_history = []
-    st.session_state.previous_board_status = [
-        ['black', 'black', 'black', 'black', 'black', 'black', 'black', 'black'],
-        ['black', 'black', 'black', 'black', 'black', 'black', 'black', 'black'],
-        ['empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty'],
-        ['empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty'],
-        ['empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty'],
-        ['empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty', 'empty'],
-        ['white', 'white', 'white', 'white', 'white', 'white', 'white', 'white'],
-        ['white', 'white', 'white', 'white', 'white', 'white', 'white', 'white']
-    ]
+def start_game(board:chess.Board = None):
+    if board:
+        st.session_state.board = board
+    else:
+        st.session_state.board = chess.Board()
+    st.session_state.previous_board_status = map_board_to_board_status(st.session_state.board)
     st.session_state.white_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated", "castle"])
     st.session_state.black_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated", "castle"])
 
@@ -86,6 +91,48 @@ def suggest_move(move, board: chess.Board):
         return chess.square_name(end_square)
 
     return None  # No legal moves available
+# def suggest_move_full(board: chess.Board):
+#     return None
+
+
+# # Sigmoid function to calculate Expected Points (EP)
+# def calculate_expected_points(score):
+#     return 1 / (1 + 10 ** (-score / 400))
+
+# def evaluate_position(board):
+#     with chess.engine.SimpleEngine.popen_uci(stockfish_path) as engine:
+#         analysis = engine.analyse(board, chess.engine.Limit(time=1))
+#         score = analysis["score"].white().score(mate_score=10000)
+#         return score
+
+#     # Play and analyze a move
+#     move = chess.Move.from_uci("e2e4")
+#     if move in board.legal_moves:
+#         # Evaluate position before the move
+#         eval_before = evaluate_position(board)
+#         ep_before = calculate_expected_points(eval_before)
+
+#         # Evaluate position after the move
+#         ep_after = calculate_expected_points(eval_after)
+
+#         # Calculate EP Delta
+#         ep_delta = abs(ep_after - ep_before)
+
+#         # Classify the move
+#         classification = "Unknown"
+#         for lower, upper, label in classification_thresholds:
+#             if lower <= ep_delta <= upper:
+#                 classification = label
+#                 break
+
+#         # Display the results
+#         print(f"Move: {move}")
+#         print(f"Evaluation Before: {eval_before} (EP: {ep_before:.2f})")
+#         print(f"Evaluation After: {eval_after} (EP: {ep_after:.2f})")
+#         print(f"EP Delta: {ep_delta:.2f}")
+#         print(f"Move Classification: {classification}")
+#     else:
+#         print("Illegal move!")
 
 def update_chessboard(move, chessboard):
     start = move['start']

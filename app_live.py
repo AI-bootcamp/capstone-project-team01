@@ -13,9 +13,8 @@ st.set_page_config(page_title="Live Chess Game Detection", page_icon="♟️")
 # Initialize variables
 if 'board' not in st.session_state:
     start_game()
+    # Initialize variables
 
-
-move_history = st.session_state.move_history
 white_moves = st.session_state.white_moves
 black_moves = st.session_state.black_moves
 
@@ -23,6 +22,16 @@ st.session_state.conf_threshold = 0.7
 
 # Streamlit Placeholders
 st.title("Chessgame history detection")
+
+# Saved boards Placeholders
+select_board_text = st.empty()
+board_selector_col, select_btn_col = st.columns(2)
+with board_selector_col:
+    board_selector = st.empty()
+with select_btn_col:
+    board_select_btn = st.empty()
+    start_video_btn = st.empty()
+
 warning_placeholder = st.empty() 
 result_announcement = st.empty()
 frame_col, detection_col2 = st.columns(2)
@@ -43,7 +52,11 @@ with black_sec:
     black_moves_placeholder = st.dataframe(black_moves)
 with board_sec:
     board_svg_placeholder = st.empty()
- 
+
+reset_game_btn = st.button("Reset Game")
+if reset_game_btn:
+    start_game()
+    
 prev_col, new_col = st.columns(2)
 with prev_col:
     prev_status_placeholder = st.empty() 
@@ -52,6 +65,22 @@ with new_col:
 
 # Display the Initial board
 board_svg_placeholder.markdown(update_board_display(st.session_state.board), unsafe_allow_html=True)
+
+if 'saved_boards' in st.session_state:
+    select_board_text.write("Select from the following boards to start from it. This will restart your current game.")
+    
+    board_names = [list(saved_board.keys())[0] for saved_board in st.session_state.saved_boards]
+    selected_board_name = board_selector.selectbox(options=board_names, label="Select a board")
+    
+    if selected_board_name:
+        # Find the corresponding board dictionary using the selected name
+        selected_board_data = next(
+            (board[selected_board_name] for board in st.session_state.saved_boards if selected_board_name in board),
+            None
+        )
+
+        if selected_board_data and board_select_btn.button("Start From This"):
+            start_game(selected_board_data)
 
 # Process frame function
 def process_frame(frame):
@@ -126,16 +155,16 @@ def process_frame(frame):
                 black_moves.loc[len(black_moves)] = move_data
 
 
-            st.session_state.previous_board_status = new_board_status
-
             white_moves_placeholder.dataframe(white_moves)
             black_moves_placeholder.dataframe(black_moves)
         
+            # eval_before = evaluate_position(st.session_state.board)
             st.session_state.board.push(chess_move)
+            # eval_after = evaluate_position(st.session_state.board)
+
             board_svg_placeholder.markdown(update_board_display(st.session_state.board), unsafe_allow_html=True)
             
-            if move.get('castle', ''):
-                st.session_state.previous_board_status = map_board_to_board_status(st.session_state.board)
+            st.session_state.previous_board_status = map_board_to_board_status(st.session_state.board)
 
             # Check win and display message
             status, message = check_win_condition(st.session_state.board)
@@ -163,8 +192,8 @@ def live_camera_feed():
                 warning_placeholder.warning("Failed to capture frame. Retrying...")
                 continue
 
-            # Process every 30th frame
-            if skip_frame % 30 == 0:
+            # Process every 10th frame
+            if skip_frame % 10 == 0:
                 # Display the live video frame
                 frame_placeholder.image(frame, channels="BGR", use_container_width=True)
                 process_frame(frame)
@@ -185,4 +214,5 @@ if st.button("Export Move Tables to PDF"):
         mime="application/pdf"
     )
 
-live_camera_feed()
+if start_video_btn.button("Start Live Detection"):
+    live_camera_feed()

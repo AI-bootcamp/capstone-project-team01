@@ -19,7 +19,6 @@ if 'board' not in st.session_state:
     start_game()
 
 
-move_history = st.session_state.move_history
 white_moves = st.session_state.white_moves
 black_moves = st.session_state.black_moves
 
