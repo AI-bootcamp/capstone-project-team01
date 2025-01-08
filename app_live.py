@@ -43,15 +43,21 @@ with detection_col2:
 det_boxes_summary = st.empty()
 suggested_move = st.empty()
 
-white_sec, black_sec, board_sec = st.columns(3)
+board_sec, next_move_sec = st.columns(2)
+with board_sec:
+    board_svg_placeholder = st.empty()
+with next_move_sec:
+    with st.container(border=True):
+        next_move_placeholder = st.empty()
+
+white_sec, black_sec = st.columns(2)
 with white_sec:
     st.write("### White Player Moves")
     white_moves_placeholder = st.dataframe(white_moves)
 with black_sec:
     st.write("### Black Player Moves")
     black_moves_placeholder = st.dataframe(black_moves)
-with board_sec:
-    board_svg_placeholder = st.empty()
+
 
 reset_game_btn = st.button("Reset Game")
 if reset_game_btn:
@@ -146,25 +152,33 @@ def process_frame(frame):
         suggested_move.empty()
 
         # Add move if legal else Display Errors
+        # if chess_move in st.session_state.board.generate_pseudo_legal_moves():
         if chess_move in st.session_state.board.legal_moves:
             warning_placeholder.empty()
 
-            if st.session_state.board.turn: # True if white
-                white_moves.loc[len(white_moves)] = move_data
-            else:
-                black_moves.loc[len(black_moves)] = move_data
-
-
-            white_moves_placeholder.dataframe(white_moves)
-            black_moves_placeholder.dataframe(black_moves)
-        
-            # eval_before = evaluate_position(st.session_state.board)
+            
+            eval_before = evaluate_position(st.session_state.board)
             st.session_state.board.push(chess_move)
-            # eval_after = evaluate_position(st.session_state.board)
+            eval_after = evaluate_position(st.session_state.board)
+
+            move_data.append(get_move_evaluation(eval_before, eval_after))
 
             board_svg_placeholder.markdown(update_board_display(st.session_state.board), unsafe_allow_html=True)
             
             st.session_state.previous_board_status = map_board_to_board_status(st.session_state.board)
+
+            # update moves table
+            # Since move is pushed the turn will be for black and previous move was for the white so we add not
+            if not st.session_state.board.turn: 
+                white_moves.loc[len(white_moves)] = move_data
+                next_move_placeholder.write(suggest_move_full(st.session_state.board))
+
+            else:
+                black_moves.loc[len(black_moves)] = move_data
+                next_move_placeholder.empty()
+
+            white_moves_placeholder.dataframe(white_moves)
+            black_moves_placeholder.dataframe(black_moves)
 
             # Check win and display message
             status, message = check_win_condition(st.session_state.board)
@@ -196,8 +210,10 @@ def live_camera_feed():
             if skip_frame % 10 == 0:
                 # Display the live video frame
                 frame_placeholder.image(frame, channels="BGR", use_container_width=True)
-                process_frame(frame)
-
+                try:
+                    process_frame(frame)
+                except Exception as e:
+                    st.error(f"Frame Processing error: {e}")
             skip_frame += 1
     except Exception as e:
         st.error(f"An error occurred: {e}")
