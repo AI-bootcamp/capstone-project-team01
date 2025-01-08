@@ -40,15 +40,13 @@ with frame_col:
 with detection_col2:
     detection_placeholder = st.empty()
 
-det_boxes_summary = st.empty()
-suggested_move = st.empty()
-
-board_sec, next_move_sec = st.columns(2)
+board_sec, summary_sec = st.columns(2)
 with board_sec:
     board_svg_placeholder = st.empty()
-with next_move_sec:
+with summary_sec:
     with st.container(border=True):
-        next_move_placeholder = st.empty()
+        det_boxes_summary = st.empty()
+        suggested_move = st.empty()
 
 white_sec, black_sec = st.columns(2)
 with white_sec:
@@ -133,7 +131,31 @@ def process_frame(frame):
     if move_warning:
         suggested_move.write(move_warning)
         return
-    
+
+    # For Move Suggestion Feature
+    if is_suggested:
+        start_square = move['start']  # e.g., 'e2'
+        end_squares = move['suggested_moves']  # e.g., ['e1', 'e2']
+
+        # Check if there are no legal moves
+        if not end_squares:
+            suggested_move.warning('No moves available')
+            return
+
+        suggested_move.write('The available moves for the selected piece are:')
+        squares_to_highlight = [chess.parse_square(sq) for sq in end_squares]
+        svg_board = chess.svg.board(
+            st.session_state.board,
+            squares=squares_to_highlight,
+            fill=dict.fromkeys(squares_to_highlight, "rgba(0, 255, 0, 0.5)"),
+        )
+        board_svg_placeholder.markdown(svg_board, unsafe_allow_html=True)
+        return
+
+    # Remove suggestions
+    suggested_move.empty()
+    board_svg_placeholder.markdown(update_board_display(st.session_state.board), unsafe_allow_html=True)
+
     # Validate the move
     if 'start' in move and 'end' in move:
         start_square = move['start']
@@ -144,12 +166,6 @@ def process_frame(frame):
 
         chess_move = chess.Move.from_uci(f"{start_square}{end_square}")
         move_data = [piece_name, start_square, end_square, eliminated_piece, castle]
-
-        # For Move Suggestion Feature
-        if is_suggested:
-            suggested_move.write(f'suggested move is: {move_data}')
-            return
-        suggested_move.empty()
 
         # Add move if legal else Display Errors
         if chess_move in st.session_state.board.generate_pseudo_legal_moves():
@@ -171,11 +187,8 @@ def process_frame(frame):
             # Since move is pushed the turn will be for black and previous move was for the white so we add not
             if not st.session_state.board.turn: 
                 white_moves.loc[len(white_moves)] = move_data
-                next_move_placeholder.write(suggest_move_full(st.session_state.board))
-
             else:
                 black_moves.loc[len(black_moves)] = move_data
-                next_move_placeholder.empty()
 
             white_moves_placeholder.dataframe(white_moves)
             black_moves_placeholder.dataframe(black_moves)

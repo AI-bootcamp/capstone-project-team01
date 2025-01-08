@@ -75,25 +75,19 @@ def detect_move(previous_board_status, new_board_status, board):
     
     # Suggest move only if just start is detected
     if 'start' in move and not 'end' in move:
-        end_move = suggest_move(move, board)
-        if end_move:
-            move['end'] = end_move
-        else:
-            move['warning'] = 'No moves available'
+        move['suggested_moves'] = suggest_moves(move, board)
         move['is_suggested'] = True
     return move
 
-def suggest_move(move, board: chess.Board):
+def suggest_moves(move, board: chess.Board):
     start_square = chess.parse_square(move['start'])
     legal_moves = [m for m in board.legal_moves if m.from_square == start_square]
 
     if legal_moves:
-        # Choose the best move for the piece (heuristic or Stockfish evaluation)
-        suggested_move = legal_moves[0]
-        end_square = suggested_move.to_square
-        return chess.square_name(end_square)
+        suggested_moves = [chess.square_name(suggested_move.to_square) for suggested_move in legal_moves]
+        return suggested_moves
 
-    return None  # No legal moves available
+    return []  # No legal moves available
 
 def suggest_move_full(board: chess.Board):
     moves = board.move_stack
