@@ -179,8 +179,8 @@ def export_to_pdf(white_moves, black_moves):
     c.drawString(100, y, "White Player Moves:")
     y -= 20
     for index, row in white_moves.iterrows():
-        castle = f'Castle: {row['castle']}'
-        eliminated = f'Eliminated: {row['Eliminated']}'
+        castle = f"Castle: {row['castle']}"
+        eliminated = f"Eliminated: {row['Eliminated']}"
         c.drawString(100, y, f"{str(row['Piece'])} from {row['From']} to {row['To']} {eliminated} {castle} Evaluation: {row['evaluation']}")
         y -= 20
 
@@ -188,8 +188,8 @@ def export_to_pdf(white_moves, black_moves):
     c.drawString(100, y, "Black Player Moves:")
     y -= 20
     for index, row in black_moves.iterrows():
-        castle = f'Castle: {row['castle']}' if row['castle'] else ''
-        eliminated = f'Eliminated: {row['Eliminated']}'  if row['Eliminated'] else ''
+        castle = f"Castle: {row['castle']}' if row['castle'] else '"
+        eliminated = f"Eliminated: {row['Eliminated']}'  if row['Eliminated'] else '"
         c.drawString(100, y, f"{str(row['Piece'])} from {row['From']} to {row['To']} {eliminated} {castle} Evaluation: {row['evaluation']}")
         y -= 20
 

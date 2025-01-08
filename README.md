@@ -1,15 +1,16 @@
 # Chess Game Detection and Move Tracking
 
 ## Project Overview
-This project implements a real-time chess game move detection using YOLO (You Only Look Once), OpenCV and Streamlit. The application utilizes a webcam feed to analyze and recognize chessboard movements, tracks the game progress, and generates a move history and export it to PDF file . Additionally, suggest moves to user using the Stockfish chess engine.
+This project implements a real-time chess game move detection using YOLO (You Only Look Once), OpenCV and Streamlit. The application utilizes a webcam feed to analyze and recognize chessboard movements, tracks the game progress, and generates a move history and exports it to a PDF file. The application provides legal move suggestions to the user based on the current board state, ensuring players are aware of all possible actions. Users can also play against Stockfish, offering an interactive way to practice and test strategies against a high-level chess bot. Stockfish is exclusively used when the user opts to play against the bot, and not for suggesting moves during regular gameplay.
 
 ## Features
 - **Real-time Chess Detection**: Use the webcam to capture and analyze chessboard movements.
 - **YOLO Model Integration**: Detects chess piece positions using a pre-trained YOLOv8 model.
 - **Chessboard Rendering**: Displays the current state of the chessboard using SVG rendering.
 - **Move History Tracking**: Logs each move made by white and black players.
+- **Play Against Stockfish**: Users can play directly against Stockfish, simulating real gameplay and testing different strategies.
 - **Illegal Move Detection**: Alerts if an illegal move is detected.
-- **Move Suggestion**: Provide the user with possible move options for their pieces.
+- **Legal Move Suggestions**: Show all possible legal moves for the player's pieces.
 - **Move Evaluation**: Evaluates the quality of a move by comparing the board state before and after the move. 
 - **Export to PDF**: Download the move history as a PDF file.
 
