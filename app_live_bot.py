@@ -122,9 +122,12 @@ def process_frame(frame):
     prev_status_placeholder.pyplot(display_board_status(st.session_state.previous_board_status))
     new_status_placeholder.pyplot(display_board_status(new_board_status))
 
-    # Get the move using status changes
-    move = detect_move(st.session_state.previous_board_status, new_board_status, st.session_state.board)
-
+    if st.session_state.board.turn:
+        # Get the move using status changes for white
+        move = detect_move(st.session_state.previous_board_status, new_board_status, st.session_state.board)
+    else:
+        move = get_full_move(st.session_state.board)
+        
     # For Move Suggestion Feature
     is_suggested = move.get('is_suggested', False)
     move_warning = move.get('warning', '')

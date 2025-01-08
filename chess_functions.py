@@ -89,13 +89,22 @@ def suggest_moves(move, board: chess.Board):
 
     return []  # No legal moves available
 
-def suggest_move_full(board: chess.Board):
+def get_full_move(board: chess.Board):
+    move = {}
+
     moves = board.move_stack
     moves_list = [move.uci() for move in moves]
     stockfish.set_position(moves_list)
     best_move = stockfish.get_best_move()
-    return best_move
 
+    if best_move:
+        start_square = chess.parse_square(best_move[:2])
+        piece = board.piece_at(start_square)
+        move['start'] = best_move[:2]
+        move['end'] = best_move[2:4]
+        move['piece'] = piece_names[piece.symbol()] if piece else ''
+
+    return move
 
 def calculate_expected_points(score):
     return 1 / (1 + 10 ** (-score / 400))
