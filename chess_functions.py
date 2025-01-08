@@ -1,13 +1,16 @@
 import streamlit as st
 import chess
 import chess.svg
+import chess.engine
 import pandas as pd
 import base64
 from reportlab.pdfgen import canvas
 from frame_processing_functions import *
+from stockfish import Stockfish
 
 # Variables
-stockfish_path = "stockfish"
+stockfish_path = "stockfish/stockfish-windows-x86-64-avx2.exe"
+stockfish = Stockfish(stockfish_path)
 
 classification_thresholds = [
     (0.00, 0.00, "Best"),
@@ -29,8 +32,8 @@ def start_game(board:chess.Board = None):
     else:
         st.session_state.board = chess.Board()
     st.session_state.previous_board_status = map_board_to_board_status(st.session_state.board)
-    st.session_state.white_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated", "castle"])
-    st.session_state.black_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated", "castle"])
+    st.session_state.white_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated", "castle", "evaluation"])
+    st.session_state.black_moves = pd.DataFrame(columns=["Piece", "From", "To", "Eliminated", "castle", "evaluation"])
 
 
 def update_board_display(board):
@@ -91,48 +94,45 @@ def suggest_move(move, board: chess.Board):
         return chess.square_name(end_square)
 
     return None  # No legal moves available
-# def suggest_move_full(board: chess.Board):
-#     return None
+
+def suggest_move_full(board: chess.Board):
+    moves = board.move_stack
+    moves_list = [move.uci() for move in moves]
+    stockfish.set_position(moves_list)
+    best_move = stockfish.get_best_move()
+    print("Suggested best move:", best_move)
+    return best_move
 
 
-# # Sigmoid function to calculate Expected Points (EP)
-# def calculate_expected_points(score):
-#     return 1 / (1 + 10 ** (-score / 400))
+def calculate_expected_points(score):
+    return 1 / (1 + 10 ** (-score / 400))
 
-# def evaluate_position(board):
-#     with chess.engine.SimpleEngine.popen_uci(stockfish_path) as engine:
-#         analysis = engine.analyse(board, chess.engine.Limit(time=1))
-#         score = analysis["score"].white().score(mate_score=10000)
-#         return score
+def evaluate_position(board):
+    moves = board.move_stack
+    moves_list = [move.uci() for move in moves]
 
-#     # Play and analyze a move
-#     move = chess.Move.from_uci("e2e4")
-#     if move in board.legal_moves:
-#         # Evaluate position before the move
-#         eval_before = evaluate_position(board)
-#         ep_before = calculate_expected_points(eval_before)
+    stockfish.set_position(moves_list)
+    evaluation = stockfish.get_evaluation()
 
-#         # Evaluate position after the move
-#         ep_after = calculate_expected_points(eval_after)
+    if evaluation['type'] == 'mate':
+        score = 10000 if evaluation['value'] > 0 else -10000
+    else:
+        # For centipawn evaluations
+        score = evaluation['value']
+    return score
 
-#         # Calculate EP Delta
-#         ep_delta = abs(ep_after - ep_before)
+def get_move_evaluation(eval_before, eval_after):
+    ep_before = calculate_expected_points(eval_before)
+    ep_after = calculate_expected_points(eval_after)
+    ep_delta = abs(ep_after - ep_before)
 
-#         # Classify the move
-#         classification = "Unknown"
-#         for lower, upper, label in classification_thresholds:
-#             if lower <= ep_delta <= upper:
-#                 classification = label
-#                 break
-
-#         # Display the results
-#         print(f"Move: {move}")
-#         print(f"Evaluation Before: {eval_before} (EP: {ep_before:.2f})")
-#         print(f"Evaluation After: {eval_after} (EP: {ep_after:.2f})")
-#         print(f"EP Delta: {ep_delta:.2f}")
-#         print(f"Move Classification: {classification}")
-#     else:
-#         print("Illegal move!")
+    classification = "Unknown"
+    for lower, upper, label in classification_thresholds:
+        if lower <= ep_delta <= upper:
+            classification = label
+            break
+    print(f"Classification: {classification}")
+    return classification
 
 def update_chessboard(move, chessboard):
     start = move['start']
@@ -177,14 +177,14 @@ def export_to_pdf(white_moves, black_moves):
     c.drawString(100, y, "White Player Moves:")
     y -= 20
     for index, row in white_moves.iterrows():
-        c.drawString(100, y, f"{row['Piece']} from {row['From']} to {row['To']} (Eliminated: {row['Eliminated']})")
+        c.drawString(100, y, f"{row['Piece']} from {row['From']} to {row['To']} (Eliminated: {row['Eliminated']}) Evaluation: {row['evaluation']}")
         y -= 20
 
     y -= 40
     c.drawString(100, y, "Black Player Moves:")
     y -= 20
     for index, row in black_moves.iterrows():
-        c.drawString(100, y, f"{row['Piece']} from {row['From']} to {row['To']} (Eliminated: {row['Eliminated']})")
+        c.drawString(100, y, f"{row['Piece']} from {row['From']} to {row['To']} (Eliminated: {row['Eliminated']}) Evaluation: {row['evaluation']}")
         y -= 20
 
     c.save()
