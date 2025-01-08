@@ -100,7 +100,6 @@ def suggest_move_full(board: chess.Board):
     moves_list = [move.uci() for move in moves]
     stockfish.set_position(moves_list)
     best_move = stockfish.get_best_move()
-    print("Suggested best move:", best_move)
     return best_move
 
 
@@ -177,14 +176,18 @@ def export_to_pdf(white_moves, black_moves):
     c.drawString(100, y, "White Player Moves:")
     y -= 20
     for index, row in white_moves.iterrows():
-        c.drawString(100, y, f"{row['Piece']} from {row['From']} to {row['To']} (Eliminated: {row['Eliminated']}) Evaluation: {row['evaluation']}")
+        castle = f'Castle: {row['castle']}'
+        eliminated = f'Eliminated: {row['Eliminated']}'
+        c.drawString(100, y, f"{str(row['Piece'])} from {row['From']} to {row['To']} {eliminated} {castle} Evaluation: {row['evaluation']}")
         y -= 20
 
     y -= 40
     c.drawString(100, y, "Black Player Moves:")
     y -= 20
     for index, row in black_moves.iterrows():
-        c.drawString(100, y, f"{row['Piece']} from {row['From']} to {row['To']} (Eliminated: {row['Eliminated']}) Evaluation: {row['evaluation']}")
+        castle = f'Castle: {row['castle']}' if row['castle'] else ''
+        eliminated = f'Eliminated: {row['Eliminated']}'  if row['Eliminated'] else ''
+        c.drawString(100, y, f"{str(row['Piece'])} from {row['From']} to {row['To']} {eliminated} {castle} Evaluation: {row['evaluation']}")
         y -= 20
 
     c.save()
