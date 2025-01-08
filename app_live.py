@@ -92,11 +92,11 @@ if 'saved_boards' in st.session_state:
 # Process frame function
 def process_frame(frame):
 
-    start = time.time()
+    #start = time.time()
     results = model.predict(source=frame, conf=st.session_state.conf_threshold)
-    end = time.time()
-    process = end - start
-    print(f"Processing time: {process:} seconds")
+    #end = time.time()
+    #process = end - start
+    #print(f"Processing time: {process:} seconds")
 
 
     boxes_no = len(results[0].boxes.xyxy)
@@ -209,7 +209,7 @@ def live_camera_feed():
 
     try:
         while True:
-            camera_start = time.time()
+            #camera_start = time.time()
             ret, frame = cap.read()
             if not ret:
                 warning_placeholder.warning("Failed to capture frame. Retrying...")
@@ -223,8 +223,8 @@ def live_camera_feed():
                     process_frame(frame)
                 except Exception as e:
                     st.error(f"Frame Processing error: {e}")
-            end_time = time.time() - camera_start
-            print(f"time for live cap: {end_time:.3f} seconds")
+            #end_time = time.time() - camera_start
+            #print(f"time for live cap: {end_time:.3f} seconds")
             skip_frame += 1
     except Exception as e:
         st.error(f"An error occurred: {e}")
