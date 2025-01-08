@@ -10,7 +10,7 @@ import pandas as pd
 from chess_functions import *
 
 # Load YOLO model
-model = YOLO('weights/bestV9.pt')
+model = YOLO(weight_path)
 
 st.set_page_config(page_title="Image Chess Game Detection", page_icon="♟️")
 

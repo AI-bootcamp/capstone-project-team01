@@ -4,6 +4,8 @@ from matplotlib.colors import to_rgba
 
 import chess
 
+weight_path = 'weights/bestV13.pt'
+
 def map_board_to_board_status(board):
 
     board_status = [['empty' for _ in range(8)] for _ in range(8)]

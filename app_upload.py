@@ -11,7 +11,7 @@ from chess_functions import *
 st.set_page_config(page_title="Mid Chess Game Detection", page_icon="♟️")
 
 # Load YOLO model
-model = YOLO('weights/bestV11.pt')
+model = YOLO(weight_path)
 
 INITIAL_BOARD = chess.Board()
 

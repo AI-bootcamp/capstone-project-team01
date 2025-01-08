@@ -6,7 +6,7 @@ from frame_processing_functions import *
 import chess
 import chess.svg
 
-model = YOLO('weights/bestV12.pt')
+model = YOLO(weight_path)
 
 st.set_page_config(page_title="Live Chess Game Detection", page_icon="♟️")
 
