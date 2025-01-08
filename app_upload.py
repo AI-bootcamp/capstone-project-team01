@@ -11,13 +11,13 @@ from chess_functions import *
 st.set_page_config(page_title="Mid Chess Game Detection", page_icon="♟️")
 
 # Load YOLO model
-model = YOLO('weights/bestV8.pt')
+model = YOLO('weights/bestV11.pt')
 
 INITIAL_BOARD = chess.Board()
 
 # Initialize session state
 def initialize_session_state():
-    st.session_state.conf_threshold = 0.7
+    st.session_state.conf_threshold = 0.9
     if 'imported_board' not in st.session_state:
         st.session_state.imported_board = chess.Board()
         st.session_state.previous_board_status = map_board_to_board_status(st.session_state.imported_board)
@@ -33,7 +33,6 @@ initialize_session_state()
 # Page title and placeholders
 st.title("Chess Game with Detection Midway")
 warning = st.empty()
-result_announcement = st.empty()
 col1, col2 = st.columns(2)
 with col1:
     det_out = st.empty()
@@ -60,12 +59,17 @@ def process_image(image_path):
     results = model.predict(source=image_path, conf=st.session_state.conf_threshold)
     if results:
         boxes = results[0].boxes.xyxy.cpu().numpy()
-        predicted_classes = results[0].boxes.cls
-        class_names = model.names
-        predicted_class_names = [class_names[int(cls)] for cls in predicted_classes]
         
         st.session_state.detection_vis = results[0].plot()
         det_out.image(st.session_state.detection_vis, channels="BGR", use_container_width=True)
+
+        if(len(boxes) != 64):
+            warning.warning(f"Recapture the image there are {64 - len(boxes)} boxes missings.")
+            return
+        
+        predicted_classes = results[0].boxes.cls
+        class_names = model.names
+        predicted_class_names = [class_names[int(cls)] for cls in predicted_classes]
         
         st.session_state.previous_board_status = order_detections(boxes, predicted_class_names)
         board_status_placeholder.pyplot(display_board_status(st.session_state.previous_board_status))

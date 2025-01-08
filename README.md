@@ -10,6 +10,7 @@ This project implements a real-time chess game move detection using YOLO (You On
 - **Move History Tracking**: Logs each move made by white and black players.
 - **Illegal Move Detection**: Alerts if an illegal move is detected.
 - **Move Suggestion**: Provide the user with possible move options for their pieces.
+- **Move Evaluation**: Evaluates the quality of a move by comparing the board state before and after the move. 
 - **Export to PDF**: Download the move history as a PDF file.
 
 ## Technologies and Libraries
@@ -62,10 +63,10 @@ The dataset used for training this model was collected personally by capturing i
 - **Empty (Square)**
 
 ### Dataset Overview
-- **Total Images**: 54
-- **Train Set**: 45 images (83%)
-- **Validation Set**: 6 images (11%)
-- **Test Set**: 3 images (6%)
+- **Total Images**: 96
+- **Train Set**: 81 images (84%)
+- **Validation Set**: 10 images (10%)
+- **Test Set**: 5 images (5%)
 
 ### Preprocessing
 - **Auto-Orientation**: Applied
@@ -74,7 +75,8 @@ The dataset used for training this model was collected personally by capturing i
 ### Augmentations
 - **Outputs per Training Example**: 3
 - **Flip**: Horizontal, Vertical
-- **Brightness Adjustment**: Randomized between -20% and +20%
+- **Grayscale**: Apply to 15% of images
+- **Exposure**: Between -10% and +10%
 
 This dataset ensures robust detection of chess pieces and empty squares by training the model across different orientations and brightness levels.
 
@@ -139,6 +141,24 @@ move = detect_move(st.session_state.previous_board_status, new_board_status, st.
 ```
 Detects moves based on the difference between previous and current board states.
 
+
+### Move Evaluation
+
+```python
+def get_move_evaluation(eval_before, eval_after):
+    ep_before = calculate_expected_points(eval_before)
+    ep_after = calculate_expected_points(eval_after)
+    ep_delta = abs(ep_after - ep_before)
+
+```
+The `get_move_evaluation` function evaluates the quality of a move by comparing the board state before and after the move.
+
+- It calculates the expected points (`ep_before` and `ep_after`).
+- The difference between the two (`ep_delta`) is used to classify the move.
+- The function iterates through predefined classification thresholds to label the move as beneficial, neutral, or detrimental.
+- The classification is printed and returned to provide immediate feedback on the move's impact on the player's position.
+
+
 ### PDF Export
 ```python
 if st.button("Export Move Tables to PDF"):
@@ -159,3 +179,10 @@ Exports the move history to a downloadable PDF file.
 - **Multiple Camera Support**
 - **Piece Recognition Improvements**
 - **Enhanced Visualization and Analysis**
+
+
+  ## Developers
+- Lamees Aloqlan
+- Sama Aldawayhie
+- Basel Felemban
+- Tariq Alshammari
