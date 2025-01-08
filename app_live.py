@@ -5,7 +5,6 @@ from chess_functions import *
 from frame_processing_functions import *
 import chess
 import chess.svg
-import time 
 
 model = YOLO(weight_path)
 
@@ -14,7 +13,6 @@ st.set_page_config(page_title="Live Chess Game Detection", page_icon="♟️")
 # Initialize variables
 if 'board' not in st.session_state:
     start_game()
-    # Initialize variables
 
 white_moves = st.session_state.white_moves
 black_moves = st.session_state.black_moves
