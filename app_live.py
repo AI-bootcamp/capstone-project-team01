@@ -160,8 +160,8 @@ def process_frame(frame):
         suggested_move.empty()
 
         # Add move if legal else Display Errors
-        if chess_move in st.session_state.board.generate_pseudo_legal_moves():
-        # if chess_move in st.session_state.board.legal_moves:
+        # if chess_move in st.session_state.board.generate_pseudo_legal_moves():
+        if chess_move in st.session_state.board.legal_moves:
             warning_placeholder.empty()
 
             
@@ -224,7 +224,7 @@ def live_camera_feed():
                 except Exception as e:
                     st.error(f"Frame Processing error: {e}")
             end_time = time.time() - camera_start
-            print(f"Processing time for live cap: {end_time:.3f} seconds")
+            print(f"time for live cap: {end_time:.3f} seconds")
             skip_frame += 1
     except Exception as e:
         st.error(f"An error occurred: {e}")
