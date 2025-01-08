@@ -2,131 +2,193 @@ import streamlit as st
 import cv2
 from ultralytics import YOLO
 from chess_functions import *
-from helpers import *
+from frame_processing_functions import *
 import chess
 import chess.svg
-from io import BytesIO
-import base64
-from reportlab.pdfgen import canvas
-import pandas as pd
 
-# Load your YOLOv8 model
-model = YOLO('weights/bestV7.pt')
+model = YOLO('weights/bestV9.pt')
+
+st.set_page_config(page_title="Live Chess Game Detection", page_icon="♟️")
 
 # Initialize variables
 if 'board' not in st.session_state:
     start_game()
+    # Initialize variables
 
-board = st.session_state.board
-move_history = st.session_state.move_history
 white_moves = st.session_state.white_moves
 black_moves = st.session_state.black_moves
 
 st.session_state.conf_threshold = 0.7
 
-# Placeholders
+# Streamlit Placeholders
 st.title("Chessgame history detection")
-warning = st.empty() 
+
+# Saved boards Placeholders
+select_board_text = st.empty()
+board_selector_col, select_btn_col = st.columns(2)
+with board_selector_col:
+    board_selector = st.empty()
+with select_btn_col:
+    board_select_btn = st.empty()
+    start_video_btn = st.empty()
+
+warning_placeholder = st.empty() 
 result_announcement = st.empty()
-col1, col2 = st.columns(2)
-with col1:
-    stframe = st.empty() 
-with col2:
-    stdetected_boxes = st.empty()
+frame_col, detection_col2 = st.columns(2)
+with frame_col:
+    frame_placeholder = st.empty() 
+with detection_col2:
+    detection_placeholder = st.empty()
 
 det_boxes_summary = st.empty()
+suggested_move = st.empty()
 
+board_sec, next_move_sec = st.columns(2)
+with board_sec:
+    board_svg_placeholder = st.empty()
+with next_move_sec:
+    with st.container(border=True):
+        next_move_placeholder = st.empty()
 
-white_sec, black_sec, board_sec = st.columns(3)
+white_sec, black_sec = st.columns(2)
 with white_sec:
     st.write("### White Player Moves")
     white_moves_placeholder = st.dataframe(white_moves)
 with black_sec:
     st.write("### Black Player Moves")
     black_moves_placeholder = st.dataframe(black_moves)
-with board_sec:
-    board_svg_placeholder = st.empty()
- 
-# col21, col22 = st.columns(2)
-# with col1:
-#     prev_status_placeholder = st.empty() 
-# with col2:
-#     new_status_placeholder = st.empty()
 
-board_svg_placeholder.markdown(update_board_display(board), unsafe_allow_html=True)
 
-# Process the frame
+reset_game_btn = st.button("Reset Game")
+if reset_game_btn:
+    start_game()
+    
+prev_col, new_col = st.columns(2)
+with prev_col:
+    prev_status_placeholder = st.empty() 
+with new_col:
+    new_status_placeholder = st.empty()
+
+# Display the Initial board
+board_svg_placeholder.markdown(update_board_display(st.session_state.board), unsafe_allow_html=True)
+
+if 'saved_boards' in st.session_state:
+    select_board_text.write("Select from the following boards to start from it. This will restart your current game.")
+    
+    board_names = [list(saved_board.keys())[0] for saved_board in st.session_state.saved_boards]
+    selected_board_name = board_selector.selectbox(options=board_names, label="Select a board")
+    
+    if selected_board_name:
+        # Find the corresponding board dictionary using the selected name
+        selected_board_data = next(
+            (board[selected_board_name] for board in st.session_state.saved_boards if selected_board_name in board),
+            None
+        )
+
+        if selected_board_data and board_select_btn.button("Start From This"):
+            start_game(selected_board_data)
+
+# Process frame function
 def process_frame(frame):
     results = model.predict(source=frame, conf=st.session_state.conf_threshold)
-    xyxy = results[0].boxes.xyxy
+    boxes_no = len(results[0].boxes.xyxy)
 
-    if not results or len(xyxy) == 0:
-        warning.warning(f'No results!')
+    # Ensuring that only 64 boxes are detected
+    if not results or boxes_no == 0:
+        warning_placeholder.warning(f'No results!')
         return 
-    elif len(xyxy) > 64:
+    elif boxes_no > 64:
             if st.session_state.conf_threshold < 0.9:
                 st.session_state.conf_threshold += 0.05
-            det_boxes_summary.write(f'number of detected boxes {len(xyxy)}, while expected is 64. new confidence = {st.session_state.conf_threshold}')
+            det_boxes_summary.write(f'number of detected boxes {boxes_no}, while expected is 64. new confidence = {st.session_state.conf_threshold}')
             return
-    elif len(xyxy) < 64:
+    elif boxes_no < 64:
         if st.session_state.conf_threshold > 0.5:
             st.session_state.conf_threshold -= 0.05
-        det_boxes_summary.write(f'number of detected boxes {len(xyxy)}, while expected is 64. new confidence = {st.session_state.conf_threshold}')
+        det_boxes_summary.write(f'number of detected boxes {boxes_no}, while expected is 64. new confidence = {st.session_state.conf_threshold}')
         return
+    
+    # Display the detection
+    det_boxes_summary.write(f"Detected boxes: {boxes_no} | Missing cells: {64 - boxes_no}")
+    detection_placeholder.image(results[0].plot(), channels="BGR", use_container_width=True)
 
+    # Get New board status [white, black, empty]
     boxes = results[0].boxes.xyxy.cpu().numpy()
     predicted_classes = results[0].boxes.cls
     class_names = model.names
     predicted_class_names = [class_names[int(cls_idx)] for cls_idx in predicted_classes]    
-    
-    det_boxes_summary.write(f"Detected boxes: {len(xyxy)} | Missing cells: {64 - len(xyxy)}")
-
-    stdetected_boxes.image(results[0].plot(), channels="BGR", use_container_width=True)
 
     new_board_status = order_detections(boxes, predicted_class_names)
     
     # Display Board status if there are issues
-    # prev_status_placeholder.text("\n".join(str(row) for row in st.session_state.previous_board_status))
-    # new_status_placeholder.text("\n".join(str(row) for row in new_board_status))
+    prev_status_placeholder.pyplot(display_board_status(st.session_state.previous_board_status))
+    new_status_placeholder.pyplot(display_board_status(new_board_status))
 
-    move = detect_move(st.session_state.previous_board_status, new_board_status, st.session_state.chessboard)
+    # Get the move using status changes
+    move = detect_move(st.session_state.previous_board_status, new_board_status, st.session_state.board)
 
+    # For Move Suggestion Feature
+    is_suggested = move.get('is_suggested', False)
+    move_warning = move.get('warning', '')
+    if move_warning:
+        suggested_move.write(move_warning)
+        return
+    
+    # Validate the move
     if 'start' in move and 'end' in move:
-        start_square = f"{chr(97 + move['start'][1])}{8 - move['start'][0]}"
-        end_square = f"{chr(97 + move['end'][1])}{8 - move['end'][0]}"
-        piece_name = piece_names.get(move['piece'], 'Unknown')
-        eliminated_piece = piece_names.get(move.get('eliminated', ''), '')
+        start_square = move['start']
+        end_square = move['end']
+        piece_name = move['piece']
+        eliminated_piece = move.get('eliminated', '')
+        castle = move.get('castle', '')
 
         chess_move = chess.Move.from_uci(f"{start_square}{end_square}")
-        move_data = [piece_name, start_square, end_square, eliminated_piece]
+        move_data = [piece_name, start_square, end_square, eliminated_piece, castle]
 
-        if chess_move in board.legal_moves:
-            warning.empty()
+        # For Move Suggestion Feature
+        if is_suggested:
+            suggested_move.write(f'suggested move is: {move_data}')
+            return
+        suggested_move.empty()
 
-            if move['piece'].startswith('w'):
+        # Add move if legal else Display Errors
+        # if chess_move in st.session_state.board.generate_pseudo_legal_moves():
+        if chess_move in st.session_state.board.legal_moves:
+            warning_placeholder.empty()
+
+            
+            eval_before = evaluate_position(st.session_state.board)
+            st.session_state.board.push(chess_move)
+            eval_after = evaluate_position(st.session_state.board)
+
+            move_data.append(get_move_evaluation(eval_before, eval_after))
+
+            board_svg_placeholder.markdown(update_board_display(st.session_state.board), unsafe_allow_html=True)
+            
+            st.session_state.previous_board_status = map_board_to_board_status(st.session_state.board)
+
+            # update moves table
+            # Since move is pushed the turn will be for black and previous move was for the white so we add not
+            if not st.session_state.board.turn: 
                 white_moves.loc[len(white_moves)] = move_data
+                next_move_placeholder.write(suggest_move_full(st.session_state.board))
+
             else:
                 black_moves.loc[len(black_moves)] = move_data
-
-            st.session_state.chessboard = update_chessboard(move, st.session_state.chessboard)
-
-            st.session_state.previous_board_status = new_board_status
+                next_move_placeholder.empty()
 
             white_moves_placeholder.dataframe(white_moves)
             black_moves_placeholder.dataframe(black_moves)
-        
-            board.push(chess_move)
-            board_svg_placeholder.markdown(update_board_display(board), unsafe_allow_html=True)
 
             # Check win and display message
-            status, message = check_win_condition(board)
+            status, message = check_win_condition(st.session_state.board)
             if status == "success":
                 result_announcement.success(message)
             elif status == "warning":
                 result_announcement.warning(message)
         else:
-            reason = explain_illegal_move(board, chess_move)
-            warning.warning(f"Move {chess_move} is an illegal move: {reason}")
+            reason = explain_illegal_move(st.session_state.board, chess_move)
+            warning_placeholder.warning(f"Move {chess_move} is an illegal move: {reason}")
 
 # Live webcam feed
 def live_camera_feed():
@@ -141,21 +203,22 @@ def live_camera_feed():
         while True:
             ret, frame = cap.read()
             if not ret:
-                warning.warning("Failed to capture frame. Retrying...")
+                warning_placeholder.warning("Failed to capture frame. Retrying...")
                 continue
-
-            # Display the live video frame
-            stframe.image(frame, channels="BGR", use_container_width=True)
 
             # Process every 10th frame
             if skip_frame % 10 == 0:
-                process_frame(frame)
-
+                # Display the live video frame
+                frame_placeholder.image(frame, channels="BGR", use_container_width=True)
+                try:
+                    process_frame(frame)
+                except Exception as e:
+                    st.error(f"Frame Processing error: {e}")
             skip_frame += 1
     except Exception as e:
         st.error(f"An error occurred: {e}")
     finally:
-        cap.release()  # Ensure the camera is released when done
+        cap.release() 
 
 # Button to export to PDF
 if st.button("Export Move Tables to PDF"):
@@ -167,4 +230,5 @@ if st.button("Export Move Tables to PDF"):
         mime="application/pdf"
     )
 
-live_camera_feed()
+if start_video_btn.button("Start Live Detection"):
+    live_camera_feed()
