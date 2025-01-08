@@ -7,7 +7,7 @@ import chess
 import chess.svg
 import time 
 
-model = YOLO('weights/bestV11.pt')
+model = YOLO('weights/bestV12.pt')
 
 st.set_page_config(page_title="Live Chess Game Detection", page_icon="♟️")
 
@@ -176,7 +176,6 @@ def process_frame(frame):
         move_data = [piece_name, start_square, end_square, eliminated_piece, castle]
 
         # Add move if legal else Display Errors
-        # if chess_move in st.session_state.board.generate_pseudo_legal_moves():
         if chess_move in st.session_state.board.legal_moves:
             warning_placeholder.empty()
 
