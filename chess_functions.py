@@ -93,9 +93,7 @@ def suggest_moves(move, board: chess.Board):
 def get_full_move(board: chess.Board):
     move = {}
 
-    moves = board.move_stack
-    moves_list = [move.uci() for move in moves]
-    stockfish.set_position(moves_list)
+    stockfish.set_fen_position(board.fen())
     best_move = stockfish.get_best_move()
 
     if best_move:

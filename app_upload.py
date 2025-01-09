@@ -26,7 +26,7 @@ def initialize_session_state():
         st.session_state.selected_position = None
     if 'image_processed' not in st.session_state:
         st.session_state.image_processed = False
-        st.session_state.saved_boards = [{"Challenge": chess.Board('8/8/8/4kp2/3p1N2/3K4/8/8 w - - 0 1')}]
+        st.session_state.saved_boards = [{"Challenge": chess.Board('6k1/8/8/8/8/5N2/4K3/7n w - - 0 1')}]
 
 initialize_session_state()
 
