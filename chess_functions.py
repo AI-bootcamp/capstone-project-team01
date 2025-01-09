@@ -50,10 +50,10 @@ def detect_move(previous_board_status, new_board_status, board):
             if previous_board_status[row][col] != new_board_status[row][col]:
                 square = chess.square(col, 7 - row) # Returns int
                 square_name = chess.square_name(chess.square(col, 7 - row)) # Returns str 'f2' 
+                piece = board.piece_at(square)
                 if new_board_status[row][col] == 'empty' and previous_board_status[row][col] != 'empty':
                     starts += 1
                     move['start'] = square_name
-                    piece = board.piece_at(square)
                     move['piece'] = piece_names[piece.symbol()] if piece else ''
                 elif previous_board_status[row][col] == 'empty' and new_board_status[row][col] != 'empty':
                     ends +=1
@@ -61,7 +61,7 @@ def detect_move(previous_board_status, new_board_status, board):
                 elif previous_board_status[row][col] != new_board_status[row][col]:
                     ends +=1
                     move['end'] = square_name
-                    move['eliminated'] = board.piece_at(square)
+                    move['eliminated'] = piece_names[piece.symbol()] if piece else ''
 
     # check for castle movement
     if 'start' in move and 'end' in move:

@@ -149,7 +149,7 @@ def process_image(imagePath):
             suggested_move.warning('No moves available')
             return
 
-        suggested_move.write(f"The available moves for the {move['start']} are:")
+        suggested_move.write(f"The available moves for the {move['piece']} are:")
         squares_to_highlight = [chess.parse_square(sq) for sq in end_squares]
         svg_board = chess.svg.board(
             st.session_state.board,
