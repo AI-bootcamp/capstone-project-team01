@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
-import numpy as np
 from matplotlib.colors import to_rgba
 
 import chess
+
+weight_path = 'weights/bestV13.pt'
 
 def map_board_to_board_status(board):
 

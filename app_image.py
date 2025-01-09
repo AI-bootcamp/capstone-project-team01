@@ -1,23 +1,19 @@
 import streamlit as st
-import cv2
 import tempfile
 from ultralytics import YOLO
 from frame_processing_functions import *
 import chess
 import chess.svg
-from io import BytesIO
-import pandas as pd
 from chess_functions import *
 
 # Load YOLO model
-model = YOLO('weights/bestV9.pt')
+model = YOLO(weight_path)
 
 st.set_page_config(page_title="Image Chess Game Detection", page_icon="♟️")
 
 # Initialize variables
 if 'board' not in st.session_state:
     start_game()
-
 
 white_moves = st.session_state.white_moves
 black_moves = st.session_state.black_moves
@@ -26,6 +22,16 @@ st.session_state.conf_threshold = 0.7
 
 # Streamlit Placeholders
 st.title("Chessgame history detection")
+
+# Saved boards Placeholders
+select_board_text = st.empty()
+board_selector_col, select_btn_col = st.columns(2)
+with board_selector_col:
+    board_selector = st.empty()
+with select_btn_col:
+    board_select_btn = st.empty()
+    start_video_btn = st.empty()
+
 warning_placeholder = st.empty() 
 result_announcement = st.empty()
 image_col, detection_col2 = st.columns(2)
@@ -34,19 +40,27 @@ with image_col:
 with detection_col2:
     detection_placeholder = st.empty()
 
-det_boxes_summary = st.empty()
-suggested_move = st.empty()
+board_sec, summary_sec = st.columns(2)
+with board_sec:
+    board_svg_placeholder = st.empty()
+with summary_sec:
+    with st.container(border=True):
+        det_boxes_summary = st.empty()
+        suggested_move = st.empty()
 
-white_sec, black_sec, board_sec = st.columns(3)
+white_sec, black_sec = st.columns(2)
 with white_sec:
     st.write("### White Player Moves")
     white_moves_placeholder = st.dataframe(white_moves)
 with black_sec:
     st.write("### Black Player Moves")
     black_moves_placeholder = st.dataframe(black_moves)
-with board_sec:
-    board_svg_placeholder = st.empty()
- 
+
+
+reset_game_btn = st.button("Reset Game")
+if reset_game_btn:
+    start_game()
+    
 prev_col, new_col = st.columns(2)
 with prev_col:
     prev_status_placeholder = st.empty() 
@@ -56,9 +70,32 @@ with new_col:
 # Display the Initial board
 board_svg_placeholder.markdown(update_board_display(st.session_state.board), unsafe_allow_html=True)
 
+if 'saved_boards' in st.session_state:
+    select_board_text.write("Select from the following boards to start from it. This will restart your current game.")
+    
+    board_names = [list(saved_board.keys())[0] for saved_board in st.session_state.saved_boards]
+    selected_board_name = board_selector.selectbox(options=board_names, label="Select a board")
+    
+    if selected_board_name:
+        # Find the corresponding board dictionary using the selected name
+        selected_board_data = next(
+            (board[selected_board_name] for board in st.session_state.saved_boards if selected_board_name in board),
+            None
+        )
+
+        if selected_board_data and board_select_btn.button("Start From This"):
+            start_game(selected_board_data)
+
 # Process the image to detect chess pieces
 def process_image(imagePath):
+
+    #start = time.time()
     results = model.predict(source=imagePath, conf=st.session_state.conf_threshold)
+    #end = time.time()
+    #process = end - start
+    #print(f"Processing time: {process:} seconds")
+
+
     boxes_no = len(results[0].boxes.xyxy)
 
     # Ensuring that only 64 boxes are detected
@@ -101,7 +138,31 @@ def process_image(imagePath):
     if move_warning:
         suggested_move.write(move_warning)
         return
-    
+
+    # For Move Suggestion Feature
+    if is_suggested:
+        start_square = move['start']  # e.g., 'e2'
+        end_squares = move['suggested_moves']  # e.g., ['e1', 'e2']
+
+        # Check if there are no legal moves
+        if not end_squares:
+            suggested_move.warning('No moves available')
+            return
+
+        suggested_move.write(f"The available moves for the {move['start']} are:")
+        squares_to_highlight = [chess.parse_square(sq) for sq in end_squares]
+        svg_board = chess.svg.board(
+            st.session_state.board,
+            squares=squares_to_highlight,
+            fill=dict.fromkeys(squares_to_highlight, "rgba(0, 255, 0, 0.5)"),
+        )
+        board_svg_placeholder.markdown(svg_board, unsafe_allow_html=True)
+        return
+
+    # Remove suggestions
+    suggested_move.empty()
+    board_svg_placeholder.markdown(update_board_display(st.session_state.board), unsafe_allow_html=True)
+
     # Validate the move
     if 'start' in move and 'end' in move:
         start_square = move['start']
@@ -113,32 +174,30 @@ def process_image(imagePath):
         chess_move = chess.Move.from_uci(f"{start_square}{end_square}")
         move_data = [piece_name, start_square, end_square, eliminated_piece, castle]
 
-        # For Move Suggestion Feature
-        if is_suggested:
-            suggested_move.write(f'suggested move is: {move_data}')
-            return
-        suggested_move.empty()
-
         # Add move if legal else Display Errors
         if chess_move in st.session_state.board.legal_moves:
             warning_placeholder.empty()
 
-            if st.session_state.board.turn: # True if white
+            
+            eval_before = evaluate_position(st.session_state.board)
+            st.session_state.board.push(chess_move)
+            eval_after = evaluate_position(st.session_state.board)
+
+            move_data.append(get_move_evaluation(eval_before, eval_after))
+
+            board_svg_placeholder.markdown(update_board_display(st.session_state.board), unsafe_allow_html=True)
+            
+            st.session_state.previous_board_status = map_board_to_board_status(st.session_state.board)
+
+            # update moves table
+            # Since move is pushed the turn will be for black and previous move was for the white so we add not
+            if not st.session_state.board.turn: 
                 white_moves.loc[len(white_moves)] = move_data
             else:
                 black_moves.loc[len(black_moves)] = move_data
 
-
-            st.session_state.previous_board_status = new_board_status
-
             white_moves_placeholder.dataframe(white_moves)
             black_moves_placeholder.dataframe(black_moves)
-        
-            st.session_state.board.push(chess_move)
-            board_svg_placeholder.markdown(update_board_display(st.session_state.board), unsafe_allow_html=True)
-            
-            if move.get('castle', ''):
-                st.session_state.previous_board_status = map_board_to_board_status(st.session_state.board)
 
             # Check win and display message
             status, message = check_win_condition(st.session_state.board)
@@ -149,7 +208,6 @@ def process_image(imagePath):
         else:
             reason = explain_illegal_move(st.session_state.board, chess_move)
             warning_placeholder.warning(f"Move {chess_move} is an illegal move: {reason}")
-
 
 # Upload and process image
 uploaded_file = st.file_uploader("Upload a chess image", type=["jpg", "jpeg", "png", "bmp"])

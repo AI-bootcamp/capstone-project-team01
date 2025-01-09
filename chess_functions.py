@@ -53,7 +53,8 @@ def detect_move(previous_board_status, new_board_status, board):
                 if new_board_status[row][col] == 'empty' and previous_board_status[row][col] != 'empty':
                     starts += 1
                     move['start'] = square_name
-                    move['piece'] = piece_names[board.piece_at(square).symbol()] # map piece symbol to its name
+                    piece = board.piece_at(square)
+                    move['piece'] = piece_names[piece.symbol()] if piece else ''
                 elif previous_board_status[row][col] == 'empty' and new_board_status[row][col] != 'empty':
                     ends +=1
                     move['end'] = square_name
@@ -179,8 +180,8 @@ def export_to_pdf(white_moves, black_moves):
     c.drawString(100, y, "White Player Moves:")
     y -= 20
     for index, row in white_moves.iterrows():
-        castle = f"Castle: {row['castle']}"
-        eliminated = f"Eliminated: {row['Eliminated']}"
+        castle = f"Castle: {row['castle']}" if row['castle'] else ""
+        eliminated = f"Eliminated: {row['Eliminated']}" if row['Eliminated'] else ''
         c.drawString(100, y, f"{str(row['Piece'])} from {row['From']} to {row['To']} {eliminated} {castle} Evaluation: {row['evaluation']}")
         y -= 20
 
@@ -188,8 +189,8 @@ def export_to_pdf(white_moves, black_moves):
     c.drawString(100, y, "Black Player Moves:")
     y -= 20
     for index, row in black_moves.iterrows():
-        castle = f"Castle: {row['castle']}' if row['castle'] else '"
-        eliminated = f"Eliminated: {row['Eliminated']}'  if row['Eliminated'] else '"
+        castle = f"Castle: {row['castle']}" if row['castle'] else ""
+        eliminated = f"Eliminated: {row['Eliminated']}"  if row['Eliminated'] else ''
         c.drawString(100, y, f"{str(row['Piece'])} from {row['From']} to {row['To']} {eliminated} {castle} Evaluation: {row['evaluation']}")
         y -= 20
 

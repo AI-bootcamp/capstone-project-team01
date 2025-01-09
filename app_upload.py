@@ -11,7 +11,7 @@ from chess_functions import *
 st.set_page_config(page_title="Mid Chess Game Detection", page_icon="♟️")
 
 # Load YOLO model
-model = YOLO('weights/bestV11.pt')
+model = YOLO(weight_path)
 
 INITIAL_BOARD = chess.Board()
 
@@ -26,7 +26,7 @@ def initialize_session_state():
         st.session_state.selected_position = None
     if 'image_processed' not in st.session_state:
         st.session_state.image_processed = False
-        st.session_state.saved_boards = [{"Challenge": chess.Board('r2qkb1r/pp2pppp/2n5/2bp4/3P1B2/2N2N2/PPP2PPP/R2QKB1R w KQkq - 2 8')}]
+        st.session_state.saved_boards = [{"Challenge": chess.Board('8/8/8/4kp2/3p1N2/3K4/8/8 w - - 0 1')}]
 
 initialize_session_state()
 

@@ -5,16 +5,14 @@ from chess_functions import *
 from frame_processing_functions import *
 import chess
 import chess.svg
-import time 
 
-model = YOLO('weights/bestV11.pt')
+model = YOLO(weight_path)
 
 st.set_page_config(page_title="Live Chess Game Detection", page_icon="♟️")
 
 # Initialize variables
 if 'board' not in st.session_state:
     start_game()
-    # Initialize variables
 
 white_moves = st.session_state.white_moves
 black_moves = st.session_state.black_moves
@@ -27,11 +25,15 @@ st.title("Chessgame history detection")
 # Saved boards Placeholders
 select_board_text = st.empty()
 board_selector_col, select_btn_col = st.columns(2)
+start_col, undo_col = st.columns(2)
 with board_selector_col:
     board_selector = st.empty()
 with select_btn_col:
     board_select_btn = st.empty()
-    start_video_btn = st.empty()
+    with start_col:
+        start_video_btn = st.empty()
+    with undo_col:
+        undo_btn = st.empty()
 
 warning_placeholder = st.empty() 
 result_announcement = st.empty()
@@ -86,6 +88,18 @@ if 'saved_boards' in st.session_state:
 
         if selected_board_data and board_select_btn.button("Start From This"):
             start_game(selected_board_data)
+
+# Undo Button
+undo_btn.button("Undo")
+if undo_btn and len(st.session_state.board.move_stack):
+    st.session_state.board.pop()
+    white_moves.drop(white_moves.tail(1).index, inplace = True) if st.session_state.board.turn else black_moves.drop(black_moves.tail(1).index, inplace = True)
+
+    white_moves_placeholder.dataframe(white_moves)
+    black_moves_placeholder.dataframe(black_moves)
+    board_svg_placeholder.markdown(update_board_display(st.session_state.board), unsafe_allow_html=True)
+    st.session_state.previous_board_status = map_board_to_board_status(st.session_state.board)
+
 
 # Process frame function
 def process_frame(frame):
@@ -176,7 +190,6 @@ def process_frame(frame):
         move_data = [piece_name, start_square, end_square, eliminated_piece, castle]
 
         # Add move if legal else Display Errors
-        # if chess_move in st.session_state.board.generate_pseudo_legal_moves():
         if chess_move in st.session_state.board.legal_moves:
             warning_placeholder.empty()
 
